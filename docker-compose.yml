@@ -26,6 +26,19 @@ services:
     volumes:
       - mongo_accountantbot_data:/data/db
 
+  discord-bot:
+    image: node:20-alpine
+    container_name: expense-discord-bot
+    restart: unless-stopped
+    working_dir: /app
+    env_file:
+      - .env
+    volumes:
+      - ./discord-bot:/app
+    command: sh -c "npm install && npm start"
+    depends_on:
+      - n8n
+
 volumes:
   n8n_accountantbot_data:
   mongo_accountantbot_data:

@@ -49,17 +49,13 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.anthropic.com/v1/messages",
+        "url": "={{$env.LLM_BASE_URL}}/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "x-api-key",
-              "value": "={{$env.ANTHROPIC_API_KEY}}"
-            },
-            {
-              "name": "anthropic-version",
-              "value": "2023-06-01"
+              "name": "Authorization",
+              "value": "=Bearer {{$env.LLM_API_KEY}}"
             },
             {
               "name": "content-type",
@@ -69,13 +65,13 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": $env.ANTHROPIC_MODEL || \"claude-3-5-sonnet-latest\",\n  \"max_tokens\": 1200,\n  \"temperature\": 0,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"You are extracting expense receipt data for an RPA workflow. Return ONLY valid JSON, no markdown. Schema: {\\\"ReceiptDetected\\\": boolean, \\\"Merchant\\\": string|null, \\\"ReceiptDate\\\": string|null, \\\"Currency\\\": string|null, \\\"TotalAmount\\\": number|null, \\\"VATAmount\\\": number|null, \\\"Category\\\": string|null, \\\"PaymentMethod\\\": string|null, \\\"ReceiptId\\\": string|null, \\\"BusinessPurpose\\\": string|null, \\\"Confidence\\\": number, \\\"Notes\\\": string|null}. If the image is not a receipt, set ReceiptDetected false and all receipt fields null. Use ISO date format YYYY-MM-DD when possible.\"\n        },\n        {\n          \"type\": \"image\",\n          \"source\": {\n            \"type\": \"base64\",\n            \"media_type\": $json.mimeType,\n            \"data\": $json.imageBase64\n          }\n        }\n      ]\n    }\n  ]\n}",
+        "jsonBody": "={\n  \"model\": $env.LLM_MODEL,\n  \"max_tokens\": 1200,\n  \"temperature\": 0,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"You are extracting expense receipt data for an RPA workflow. Return ONLY valid JSON, no markdown. Schema: {\\\"ReceiptDetected\\\": boolean, \\\"Merchant\\\": string|null, \\\"ReceiptDate\\\": string|null, \\\"Currency\\\": string|null, \\\"TotalAmount\\\": number|null, \\\"VATAmount\\\": number|null, \\\"Category\\\": string|null, \\\"PaymentMethod\\\": string|null, \\\"ReceiptId\\\": string|null, \\\"BusinessPurpose\\\": string|null, \\\"Confidence\\\": number, \\\"Notes\\\": string|null}. If the image is not a receipt, set ReceiptDetected false and all receipt fields null. Use ISO date format YYYY-MM-DD when possible.\"\n        },\n        {\n          \"type\": \"image_url\",\n          \"image_url\": {\n            \"url\": \"data:\" + $json.mimeType + \";base64,\" + $json.imageBase64\n          }\n        }\n      ]\n    }\n  ]\n}",
         "options": {
           "timeout": 60000
         }
       },
       "id": "d0b0e2b2-877d-4cdc-8c38-f77bb750ac00",
-      "name": "AI Extraction - Claude Sonnet",
+      "name": "AI Extraction - LLM",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -86,7 +82,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nconst original = $('Normalize Discord Input').first().json;\nconst response = $json;\n\nfunction safeString(value) {\n  if (value === null || value === undefined) return '';\n  return String(value).trim();\n}\n\nfunction parseClaudeJson(resp) {\n  if (resp.error || resp.message?.includes?.('Error')) {\n    return { apiUnavailable: true, aiRawText: '', extracted: null };\n  }\n\n  const text =\n    resp.content?.[0]?.text ??\n    resp.body?.content?.[0]?.text ??\n    resp.data?.content?.[0]?.text ??\n    '';\n\n  if (!text) {\n    return { apiUnavailable: true, aiRawText: '', extracted: null };\n  }\n\n  try {\n    const cleaned = text.replace(/^```json\\s*/i, '').replace(/```$/i, '').trim();\n    return { apiUnavailable: false, aiRawText: text, extracted: JSON.parse(cleaned) };\n  } catch (error) {\n    return { apiUnavailable: false, aiRawText: text, extracted: {\n      ReceiptDetected: false,\n      Notes: `AI returned invalid JSON: ${error.message}`\n    }};\n  }\n}\n\nconst parsed = parseClaudeJson(response);\n\nif (parsed.apiUnavailable) {\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: true,\n      logEvent: 'AIUnavailable',\n      status: 'Rejected',\n      details: 'Claude Sonnet API failed or returned no usable response.',\n      discordMessage: `\u26a0\ufe0f <@${original.discordUserId}> your receipt could not be processed because the AI service is unavailable. Please try again later.`\n    }\n  }];\n}\n\nconst ai = parsed.extracted || {};\nconst receiptDetected = ai.ReceiptDetected === true;\n\nif (!receiptDetected) {\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: false,\n      receiptDetected: false,\n      logEvent: 'NoReceiptRegistered',\n      status: 'Rejected',\n      details: safeString(ai.Notes) || 'No receipt was detected in the submitted image.',\n      aiRawText: parsed.aiRawText,\n      discordMessage: `\u274c <@${original.discordUserId}> no valid receipt was detected. Please send a new image of the receipt.`\n    }\n  }];\n}\n\nconst merged = {\n  discordUser: original.discordUser,\n  discordUserId: original.discordUserId,\n  messageTimestamp: original.messageTimestamp,\n  submittedDate: original.submittedDate,\n  messageId: original.messageId,\n  channelId: original.channelId,\n\n  merchant: safeString(ai.Merchant),\n  receiptDate: safeString(ai.ReceiptDate),\n  currency: safeString(ai.Currency),\n  totalAmount: ai.TotalAmount ?? '',\n  vatAmount: ai.VATAmount ?? '',\n  category: safeString(ai.Category),\n  paymentMethod: safeString(ai.PaymentMethod),\n  receiptId: safeString(ai.ReceiptId),\n  businessPurpose: safeString(ai.BusinessPurpose),\n  confidence: ai.Confidence ?? '',\n  notes: safeString(ai.Notes)\n};\n\nconst requiredFields = [\n  ['Merchant', merged.merchant],\n  ['Receipt Date', merged.receiptDate],\n  ['Currency', merged.currency],\n  ['Total Amount', merged.totalAmount],\n  ['VAT Amount', merged.vatAmount],\n  ['Category', merged.category]\n];\n\nconst missingFields = requiredFields\n  .filter(([_, value]) => value === '' || value === null || value === undefined)\n  .map(([field]) => field);\n\nconst hasMissingFields = missingFields.length > 0;\nconst status = hasMissingFields ? 'Pending Review' : 'Approved';\nconst details = hasMissingFields\n  ? `Missing fields: ${missingFields.join(', ')}`\n  : 'Valid receipt.';\n\nconst rowValues = [\n  merged.submittedDate,\n  merged.messageTimestamp,\n  merged.discordUser,\n  merged.discordUserId,\n  merged.receiptId,\n  merged.merchant,\n  merged.receiptDate,\n  merged.category,\n  merged.currency,\n  merged.totalAmount,\n  merged.vatAmount,\n  merged.paymentMethod,\n  merged.businessPurpose,\n  status,\n  details,\n  merged.confidence,\n  merged.messageId\n];\n\nconst discordMessage = hasMissingFields\n  ? `\ud83d\udfe1 <@${merged.discordUserId}> your receipt was detected, but it is missing required data.\\n\\n**Status:** Pending Review\\n**Details:** ${details}\\n\\n<@&${$env.DISCORD_ACCOUNTANT_ROLE_ID}> please review this expense.`\n  : `\u2705 <@${merged.discordUserId}> your receipt was processed successfully.\\n\\n**Status:** Approved\\n**Merchant:** ${merged.merchant}\\n**Amount:** ${merged.totalAmount} ${merged.currency}\\n**Category:** ${merged.category}\\n\\n<@&${$env.DISCORD_ACCOUNTANT_ROLE_ID}>`;\n\nreturn [{\n  json: {\n    ...merged,\n    apiUnavailable: false,\n    receiptDetected: true,\n    hasMissingFields,\n    missingFields,\n    status,\n    details,\n    rowValues,\n    aiRawText: parsed.aiRawText,\n    logEvent: hasMissingFields ? `AIResponseReceived; MissingFields` : `AIResponseReceived`,\n    discordMessage\n  }\n}];\n"
+        "jsCode": "\nconst original = $('Normalize Discord Input').first().json;\nconst response = $json;\n\nfunction safeString(value) {\n  if (value === null || value === undefined) return '';\n  return String(value).trim();\n}\n\nfunction parseLlmJson(resp) {\n  if (resp.error || resp.message?.includes?.('Error')) {\n    return { apiUnavailable: true, aiRawText: '', extracted: null };\n  }\n\n  const text =\n    resp.choices?.[0]?.message?.content ??\n    resp.body?.choices?.[0]?.message?.content ??\n    resp.data?.choices?.[0]?.message?.content ??\n    '';\n\n  if (!text) {\n    return { apiUnavailable: true, aiRawText: '', extracted: null };\n  }\n\n  try {\n    const cleaned = text.replace(/^```json\\s*/i, '').replace(/```$/i, '').trim();\n    return { apiUnavailable: false, aiRawText: text, extracted: JSON.parse(cleaned) };\n  } catch (error) {\n    return { apiUnavailable: false, aiRawText: text, extracted: {\n      ReceiptDetected: false,\n      Notes: `AI returned invalid JSON: ${error.message}`\n    }};\n  }\n}\n\nconst parsed = parseLlmJson(response);\n\nif (parsed.apiUnavailable) {\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: true,\n      logEvent: 'AIUnavailable',\n      status: 'Rejected',\n      details: 'LLM API failed or returned no usable response.',\n      discordMessage: `\u26a0\ufe0f <@${original.discordUserId}> your receipt could not be processed because the AI service is unavailable. Please try again later.`\n    }\n  }];\n}\n\nconst ai = parsed.extracted || {};\nconst receiptDetected = ai.ReceiptDetected === true;\n\nif (!receiptDetected) {\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: false,\n      receiptDetected: false,\n      logEvent: 'NoReceiptRegistered',\n      status: 'Rejected',\n      details: safeString(ai.Notes) || 'No receipt was detected in the submitted image.',\n      aiRawText: parsed.aiRawText,\n      discordMessage: `\u274c <@${original.discordUserId}> no valid receipt was detected. Please send a new image of the receipt.`\n    }\n  }];\n}\n\nconst merged = {\n  discordUser: original.discordUser,\n  discordUserId: original.discordUserId,\n  messageTimestamp: original.messageTimestamp,\n  submittedDate: original.submittedDate,\n  messageId: original.messageId,\n  channelId: original.channelId,\n\n  merchant: safeString(ai.Merchant),\n  receiptDate: safeString(ai.ReceiptDate),\n  currency: safeString(ai.Currency),\n  totalAmount: ai.TotalAmount ?? '',\n  vatAmount: ai.VATAmount ?? '',\n  category: safeString(ai.Category),\n  paymentMethod: safeString(ai.PaymentMethod),\n  receiptId: safeString(ai.ReceiptId),\n  businessPurpose: safeString(ai.BusinessPurpose),\n  confidence: ai.Confidence ?? '',\n  notes: safeString(ai.Notes)\n};\n\nconst requiredFields = [\n  ['Merchant', merged.merchant],\n  ['Receipt Date', merged.receiptDate],\n  ['Currency', merged.currency],\n  ['Total Amount', merged.totalAmount],\n  ['VAT Amount', merged.vatAmount],\n  ['Category', merged.category]\n];\n\nconst missingFields = requiredFields\n  .filter(([_, value]) => value === '' || value === null || value === undefined)\n  .map(([field]) => field);\n\nconst hasMissingFields = missingFields.length > 0;\nconst status = hasMissingFields ? 'Pending Review' : 'Approved';\nconst details = hasMissingFields\n  ? `Missing fields: ${missingFields.join(', ')}`\n  : 'Valid receipt.';\n\nconst rowValues = [\n  merged.submittedDate,\n  merged.messageTimestamp,\n  merged.discordUser,\n  merged.discordUserId,\n  merged.receiptId,\n  merged.merchant,\n  merged.receiptDate,\n  merged.category,\n  merged.currency,\n  merged.totalAmount,\n  merged.vatAmount,\n  merged.paymentMethod,\n  merged.businessPurpose,\n  status,\n  details,\n  merged.confidence,\n  merged.messageId\n];\n\nconst discordMessage = hasMissingFields\n  ? `\ud83d\udfe1 <@${merged.discordUserId}> your receipt was detected, but it is missing required data.\\n\\n**Status:** Pending Review\\n**Details:** ${details}\\n\\n<@&${$env.DISCORD_ACCOUNTANT_ROLE_ID}> please review this expense.`\n  : `\u2705 <@${merged.discordUserId}> your receipt was processed successfully.\\n\\n**Status:** Approved\\n**Merchant:** ${merged.merchant}\\n**Amount:** ${merged.totalAmount} ${merged.currency}\\n**Category:** ${merged.category}\\n\\n<@&${$env.DISCORD_ACCOUNTANT_ROLE_ID}>`;\n\nreturn [{\n  json: {\n    ...merged,\n    apiUnavailable: false,\n    receiptDetected: true,\n    hasMissingFields,\n    missingFields,\n    status,\n    details,\n    rowValues,\n    aiRawText: parsed.aiRawText,\n    logEvent: hasMissingFields ? `AIResponseReceived; MissingFields` : `AIResponseReceived`,\n    discordMessage\n  }\n}];\n"
       },
       "id": "7624a547-0bf0-40e6-9d98-b9c14dd7806b",
       "name": "Parse AI Response and Validate",
@@ -265,16 +261,16 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://graph.microsoft.com/v1.0/me/drive/items/{{$env.EXCEL_WORKBOOK_ITEM_ID}}/workbook/tables/{{$env.EXCEL_EXPENSE_TABLE_NAME}}/rows/add",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{$env.GOOGLE_SHEETS_SPREADSHEET_ID}}/values/{{$env.GOOGLE_SHEETS_SHEET_NAME}}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
         "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "microsoftOAuth2Api",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"values\": [ $json.rowValues ]\n}",
         "options": {}
       },
       "id": "e0759111-e530-4236-80de-5d13eceda849",
-      "name": "Excel Append - Pending Review",
+      "name": "Sheets Append - Pending Review",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -303,7 +299,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={\n  \"ok\": true,\n  \"status\": $json.status,\n  \"event\": \"WroteToExcel\",\n  \"details\": $json.details,\n  \"missingFields\": $json.missingFields\n}",
+        "responseBody": "={\n  \"ok\": true,\n  \"status\": $json.status,\n  \"event\": \"WroteToSheet\",\n  \"details\": $json.details,\n  \"missingFields\": $json.missingFields\n}",
         "options": {}
       },
       "id": "740920ad-c3ee-4902-aff8-cd22fec3aeac",
@@ -318,16 +314,16 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://graph.microsoft.com/v1.0/me/drive/items/{{$env.EXCEL_WORKBOOK_ITEM_ID}}/workbook/tables/{{$env.EXCEL_EXPENSE_TABLE_NAME}}/rows/add",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{$env.GOOGLE_SHEETS_SPREADSHEET_ID}}/values/{{$env.GOOGLE_SHEETS_SHEET_NAME}}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
         "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "microsoftOAuth2Api",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"values\": [ $json.rowValues ]\n}",
         "options": {}
       },
       "id": "5abb6c97-86b9-47a7-b8d8-a9b146cf4a2f",
-      "name": "Excel Append - Approved",
+      "name": "Sheets Append - Approved",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -337,7 +333,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{ json: { ...$json, logEvent: 'Success; WroteToExcel' } }];"
+        "jsCode": "return [{ json: { ...$json, logEvent: 'Success; WroteToSheet' } }];"
       },
       "id": "e27726c2-29dc-4f4b-a9e6-9edbc08b6344",
       "name": "Add Success Log Event",
@@ -383,7 +379,7 @@
     },
     {
       "parameters": {
-        "content": "Set these in your n8n environment/config:\\n\\nANTHROPIC_API_KEY=your_key\\nANTHROPIC_MODEL=claude-3-5-sonnet-latest\\nDISCORD_LOG_WEBHOOK_URL=https://discord.com/api/webhooks/...\\nDISCORD_ACCOUNTANT_ROLE_ID=your_role_id\\nEXCEL_WORKBOOK_ITEM_ID=your_onedrive_workbook_item_id\\nEXCEL_EXPENSE_TABLE_NAME=Expenses\\nMONGO_LOG_COLLECTION=workflow_logs\\n\\nMongoDB credential in n8n should point to mongodb://admin:password@mongo:27017/expense_rpa?authSource=admin\\n\\nExcel table columns should match rowValues order in the Code node.",
+        "content": "Set these in your n8n environment/config:\\n\\nLLM_BASE_URL=https://api.openai.com/v1   (any OpenAI-compatible endpoint)\\nLLM_API_KEY=your_key\\nLLM_MODEL=gpt-4o-mini                    (must be a vision-capable model)\\nDISCORD_LOG_WEBHOOK_URL=https://discord.com/api/webhooks/...\\nDISCORD_ACCOUNTANT_ROLE_ID=your_role_id\\nGOOGLE_SHEETS_SPREADSHEET_ID=your_google_sheet_id\\nGOOGLE_SHEETS_SHEET_NAME=Expenses\\nMONGO_LOG_COLLECTION=workflow_logs\\n\\nMongoDB credential in n8n should point to mongodb://admin:password@mongo:27017/expense_rpa?authSource=admin\\n\\nGoogle Sheets credential: create a Google Sheets OAuth2 API credential in n8n and attach it to the two 'Sheets Append' nodes.\\n\\nSheet column order must match rowValues order in the Code node.",
         "height": 340,
         "width": 540,
         "color": 5
@@ -399,13 +395,13 @@
     },
     {
       "parameters": {
-        "content": "Recommended Excel table columns:\\n\\nSubmittedDate | MessageTimestamp | DiscordUser | DiscordUserId | ReceiptId | Merchant | ReceiptDate | Category | Currency | TotalAmount | VATAmount | PaymentMethod | BusinessPurpose | Status | Details | Confidence | MessageId\\n\\nThis supports monthly budget reports, pivot tables and charts later without changing the n8n flow.",
+        "content": "Recommended Google Sheets columns (header row in this exact order):\\n\\nSubmittedDate | MessageTimestamp | DiscordUser | DiscordUserId | ReceiptId | Merchant | ReceiptDate | Category | Currency | TotalAmount | VATAmount | PaymentMethod | BusinessPurpose | Status | Details | Confidence | MessageId\\n\\nThis supports monthly budget reports, pivot tables and charts later without changing the n8n flow.",
         "height": 230,
         "width": 620,
         "color": 6
       },
       "id": "68214c08-f70d-49fe-a757-ae65e05027e7",
-      "name": "README - Excel Columns",
+      "name": "README - Google Sheets Columns",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
@@ -589,7 +585,7 @@
     },
     {
       "parameters": {
-        "content": "MongoDB logging added:\\n\\nThe workflow now writes operational log events to MongoDB as side branches, so logging does not break the main expense flow.\\n\\nLogged events include:\\n- SubmissionReceived\\n- AIUnavailable\\n- AIResponseReceived\\n- NoReceiptRegistered\\n- MissingFields / PendingReview\\n- Success / WroteToExcel\\n\\nConfigure a MongoDB credential in n8n that connects to the Docker Mongo service.",
+        "content": "MongoDB logging added:\\n\\nThe workflow now writes operational log events to MongoDB as side branches, so logging does not break the main expense flow.\\n\\nLogged events include:\\n- SubmissionReceived\\n- AIUnavailable\\n- AIResponseReceived\\n- NoReceiptRegistered\\n- MissingFields / PendingReview\\n- Success / WroteToSheet\\n\\nConfigure a MongoDB credential in n8n that connects to the Docker Mongo service.",
         "height": 300,
         "width": 560,
         "color": 7
@@ -621,7 +617,7 @@
       "main": [
         [
           {
-            "node": "AI Extraction - Claude Sonnet",
+            "node": "AI Extraction - LLM",
             "type": "main",
             "index": 0
           },
@@ -633,7 +629,7 @@
         ]
       ]
     },
-    "AI Extraction - Claude Sonnet": {
+    "AI Extraction - LLM": {
       "main": [
         [
           {
@@ -732,7 +728,7 @@
       "main": [
         [
           {
-            "node": "Excel Append - Pending Review",
+            "node": "Sheets Append - Pending Review",
             "type": "main",
             "index": 0
           },
@@ -744,14 +740,14 @@
         ],
         [
           {
-            "node": "Excel Append - Approved",
+            "node": "Sheets Append - Approved",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Excel Append - Pending Review": {
+    "Sheets Append - Pending Review": {
       "main": [
         [
           {
@@ -773,7 +769,7 @@
         ]
       ]
     },
-    "Excel Append - Approved": {
+    "Sheets Append - Approved": {
       "main": [
         [
           {
@@ -887,7 +883,7 @@
   "versionId": "1442b5dd-386f-47f6-8b5d-c447867c7c0a",
   "meta": {
     "templateCredsSetupCompleted": false,
-    "description": "Prototype n8n workflow for Discord receipt submission, Claude Sonnet AI extraction, validation, Excel append, MongoDB logging, and Discord notifications."
+    "description": "Prototype n8n workflow for Discord receipt submission, OpenAI-compatible LLM extraction, validation, Google Sheets append, MongoDB logging, and Discord notifications."
   },
   "id": "expense-management-rpa-prototype",
   "tags": []

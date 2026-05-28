@@ -48,7 +48,7 @@
     },
     {
       "parameters": {
-        "workflowId": "PLACEHOLDER_LOGGING_WORKFLOW_ID",
+        "workflowId": "6Z9jJBQnvvtMps1A",
         "workflowInputs": {
           "values": [
             {
@@ -126,7 +126,7 @@
             },
             {
               "name": "messages",
-              "value": "={{ [{ role: 'user', content: [{ type: 'text', text: 'You are extracting expense receipt data for an RPA workflow. Return ONLY valid JSON, no markdown. Schema: {\"ReceiptDetected\": boolean, \"Merchant\": string|null, \"ReceiptDate\": string|null (format DD-MM-YYYY), \"Currency\": string|null, \"TotalAmount\": number|null, \"VATAmount\": number|null, \"VATIncluded\": \"Yes\"|\"No\"|null, \"Category\": string|null, \"PaymentMethod\": string|null, \"ReceiptId\": string|null, \"BusinessPurpose\": string|null, \"Confidence\": number, \"Notes\": string|null}. If standard groceries or restaurant use Category: Food / Meals. If corporate transaction use PaymentMethod: Company Card. If image is not a receipt set ReceiptDetected false and all receipt fields null.' }, { type: 'image_url', image_url: { url: 'data:' + $json.mimeType + ';base64,' + $json.imageBase64 } }] }] }}"
+              "value": "={{ [{ role: 'user', content: [{ type: 'text', text: 'You are extracting expense receipt data for an RPA workflow. Return ONLY valid JSON, no markdown. Schema: {\"ReceiptDetected\": boolean, \"Merchant\": string|null, \"ReceiptDate\": string|null (format DD-MM-YYYY), \"Currency\": string|null, \"TotalAmount\": number|null, \"VATAmount\": number|null, \"VATIncluded\": \"Yes\"|\"No\"|null, \"Category\": string|null, \"PaymentMethod\": string|null, \"ReceiptId\": string|null, \"BusinessPurpose\": string|null, \"Confidence\": number, \"Notes\": string|null}. If standard groceries or restaurant use Category: Food / Meals. If corporate transaction use PaymentMethod: Company Card. If image is not a receipt set ReceiptDetected false and all receipt fields null.' }, { type: 'image_url', image_url: { url: 'data:' + $('Normalize Discord Input').first().json.mimeType + ';base64,' + $('Normalize Discord Input').first().json.imageBase64 } }] }] }}"
             }
           ]
         },
@@ -192,7 +192,7 @@
     },
     {
       "parameters": {
-        "workflowId": "PLACEHOLDER_LOGGING_WORKFLOW_ID",
+        "workflowId": "6Z9jJBQnvvtMps1A",
         "workflowInputs": {
           "values": [
             {
@@ -314,7 +314,7 @@
     },
     {
       "parameters": {
-        "workflowId": "PLACEHOLDER_LOGGING_WORKFLOW_ID",
+        "workflowId": "6Z9jJBQnvvtMps1A",
         "workflowInputs": {
           "values": [
             {
@@ -399,7 +399,7 @@
     },
     {
       "parameters": {
-        "workflowId": "PLACEHOLDER_LOGGING_WORKFLOW_ID",
+        "workflowId": "6Z9jJBQnvvtMps1A",
         "workflowInputs": {
           "values": [
             {
@@ -541,7 +541,7 @@
     },
     {
       "parameters": {
-        "workflowId": "PLACEHOLDER_LOGGING_WORKFLOW_ID",
+        "workflowId": "6Z9jJBQnvvtMps1A",
         "workflowInputs": {
           "values": [
             {
@@ -654,7 +654,7 @@
     },
     {
       "parameters": {
-        "workflowId": "PLACEHOLDER_LOGGING_WORKFLOW_ID",
+        "workflowId": "6Z9jJBQnvvtMps1A",
         "workflowInputs": {
           "values": [
             {
@@ -763,7 +763,7 @@
     },
     {
       "parameters": {
-        "content": "Set these in your n8n environment/config:\n\nLLM_BASE_URL=https://api.anthropic.com/v1\nLLM_API_KEY=your_anthropic_key\nLLM_MODEL=claude-sonnet-4-20250514\nDISCORD_LOG_WEBHOOK_URL=https://discord.com/api/webhooks/...\nGOOGLE_SHEETS_SPREADSHEET_ID=your_google_sheet_id\n\nMongoDB credential in n8n:\nmongodb://admin:password@mongo:27017/AccountantBotDatabase\n\nSheet column order (must match rowValues in Parse node):\nEmployee Name | Submitted Date | Receipt Date | Merchant\n| Expense Category | Payment Method | Currency\n| Total Amount | VAT Included | VAT Amount | Status\n\nIMPORTANT: Import the Logging Subworkflow first,\nthen replace PLACEHOLDER_LOGGING_WORKFLOW_ID\nwith its workflow ID from the n8n URL.",
+        "content": "Set these in your n8n environment/config:\n\nLLM_BASE_URL=https://api.anthropic.com/v1\nLLM_API_KEY=your_anthropic_key\nLLM_MODEL=claude-sonnet-4-20250514\nDISCORD_LOG_WEBHOOK_URL=https://discord.com/api/webhooks/...\nGOOGLE_SHEETS_SPREADSHEET_ID=your_google_sheet_id\n\nMongoDB credential in n8n:\nmongodb://admin:password@mongo:27017/AccountantBotDatabase\n\nSheet column order (must match rowValues in Parse node):\nEmployee Name | Submitted Date | Receipt Date | Merchant\n| Expense Category | Payment Method | Currency\n| Total Amount | VAT Included | VAT Amount | Status\n\nIMPORTANT: Import the Logging Subworkflow first,\nthen replace 6Z9jJBQnvvtMps1A\nwith its workflow ID from the n8n URL.",
         "height": 400,
         "width": 540,
         "color": 5
@@ -812,7 +812,7 @@
     },
     {
       "parameters": {
-        "workflowId": "PLACEHOLDER_LOGGING_WORKFLOW_ID",
+        "workflowId": "6Z9jJBQnvvtMps1A",
         "workflowInputs": {
           "values": [
             {
@@ -918,7 +918,7 @@
     },
     {
       "parameters": {
-        "workflowId": "PLACEHOLDER_LOGGING_WORKFLOW_ID",
+        "workflowId": "6Z9jJBQnvvtMps1A",
         "workflowInputs": {
           "values": [
             {
@@ -1007,12 +1007,18 @@
       "main": [
         [
           {
-            "node": "AI Extraction - LLM",
+            "node": "Log - SubmissionReceived",
             "type": "main",
             "index": 0
-          },
+          }
+        ]
+      ]
+    },
+    "Log - SubmissionReceived": {
+      "main": [
+        [
           {
-            "node": "Log - SubmissionReceived",
+            "node": "AI Extraction - LLM",
             "type": "main",
             "index": 0
           }

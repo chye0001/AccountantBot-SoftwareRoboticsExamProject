@@ -3,7 +3,8 @@ import { Client, GatewayIntentBits, Partials } from "discord.js";
 const {
     DISCORD_BOT_TOKEN,
     DISCORD_EXPENSE_CHANNEL_ID,
-    N8N_WEBHOOK_URL
+    N8N_WEBHOOK_URL,
+    N8N_MOCK_WEBHOOK_URL
 } = process.env;
 
 if (!DISCORD_BOT_TOKEN) {
@@ -17,6 +18,14 @@ if (!DISCORD_EXPENSE_CHANNEL_ID) {
 if (!N8N_WEBHOOK_URL) {
     throw new Error("Missing N8N_WEBHOOK_URL in .env");
 }
+
+// Mock webhook URL for TEST messages. Explicit env wins; otherwise derive from
+// the real URL by suffixing the path with -mock (matches the mock workflow's path).
+const mockWebhookUrl =
+    N8N_MOCK_WEBHOOK_URL ||
+    N8N_WEBHOOK_URL.replace("expense-submission", "expense-submission-mock");
+
+const TEST_SCENARIOS = ["approved", "pending", "rejected", "unavailable"];
 
 const client = new Client({
     intents: [
@@ -36,6 +45,7 @@ client.once("clientReady", () => {
     console.log(`Expense bot logged in as ${client.user.tag}`);
     console.log(`Listening for receipts in channel ID: ${DISCORD_EXPENSE_CHANNEL_ID}`);
     console.log(`Forwarding receipt data to: ${N8N_WEBHOOK_URL}`);
+    console.log(`Forwarding TEST messages to: ${mockWebhookUrl}`);
 });
 
 
@@ -47,10 +57,61 @@ client.on("messageCreate", async (message) => {
         // Only listen to the expense channel
         if (message.channelId !== DISCORD_EXPENSE_CHANNEL_ID) return;
 
+        // TEST mode: "TEST approved" / "TEST pending" / "TEST rejected" / "TEST unavailable"
+        // No image required — sends a no-image payload to the mock n8n webhook.
+        const testMatch = message.content?.match(/^TEST\s+(\w+)/);
+        if (testMatch) {
+            const scenario = testMatch[1].toLowerCase();
+
+            if (!TEST_SCENARIOS.includes(scenario)) {
+                await message.reply(
+                    `Unknown TEST scenario: \`${testMatch[1]}\`. Use one of: ${TEST_SCENARIOS.map((s) => `\`${s}\``).join(", ")}.`
+                );
+                return;
+            }
+
+            console.log(`TEST submission from ${message.author.username}: scenario=${scenario}`);
+
+            const testPayload = {
+                discordUser: message.author.username,
+                discordUserId: message.author.id,
+                messageTimestamp: message.createdAt.toISOString(),
+                submittedDate: new Date().toISOString().slice(0, 10),
+                messageId: message.id,
+                channelId: message.channelId,
+                imageBase64: "",
+                mimeType: "image/jpeg",
+                mockScenario: scenario,
+                originalMessage: message.content
+            };
+
+            const mockResponse = await fetch(mockWebhookUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(testPayload)
+            });
+
+            if (!mockResponse.ok) {
+                const errorText = await mockResponse.text();
+                console.error("n8n mock webhook error:", errorText);
+                await message.reply(
+                    `Test submission was received, but the mock workflow failed to process it. ` +
+                    `Check that the mock workflow is imported and Active at ${mockWebhookUrl}.`
+                );
+                return;
+            }
+
+            await message.react("🧪");
+            console.log(`TEST forwarded to mock n8n. Message ID: ${message.id}, scenario: ${scenario}`);
+            return;
+        }
+
         const attachment = message.attachments.first();
 
         if (!attachment) {
-            await message.reply("Please attach a receipt image.");
+            await message.reply(
+                "Please attach a receipt image — or send `TEST approved` / `TEST pending` / `TEST rejected` / `TEST unavailable` to simulate via the mock workflow."
+            );
             return;
         }
 

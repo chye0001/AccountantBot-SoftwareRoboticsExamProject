@@ -1,0 +1,1238 @@
+{
+  "name": "Automated Expense Management - MOCK AI (Google Sheets Integration Test)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "expense-submission-mock",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d11e2807-e58f-474a-89e9-f96382ef13fa",
+      "name": "Webhook - Discord Receipt Submission",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "MOCK AI variant of the main workflow.\n\nThe LLM HTTP call has been replaced with a Code node that returns a hardcoded, valid receipt — so this workflow exercises only the Google Sheets + Discord + Mongo integration path, with no LLM API key, billing, or network dependency required.\n\nWebhook path is /webhook/expense-submission-mock\n(so it does not collide with the real workflow).\n\nTo trigger different branches, override fields in the Discord bot's POST body:\n  mockScenario: \"approved\" (default) | \"pending\" | \"rejected\"\n\nExpected POST body from your Discord bot:\n{\n  \"discordUser\": \"Paul Krus\",\n  \"discordUserId\": \"123456789\",\n  \"messageTimestamp\": \"2026-05-25T14:14:34.000Z\",\n  \"submittedDate\": \"2026-05-25\",\n  \"messageId\": \"discord-message-id\",\n  \"channelId\": \"discord-channel-id\",\n  \"imageBase64\": \"<can be empty in mock mode>\",\n  \"mimeType\": \"image/jpeg\",\n  \"mockScenario\": \"approved\"\n}",
+        "height": 420,
+        "width": 540,
+        "color": 4
+      },
+      "id": "d7e2ae9a-6169-4c8c-908b-ca22362ace1f",
+      "name": "README - Expected Input (MOCK)",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst body = $json.body ?? $json;\n\n// Bot message guard - discard if message is from a bot\nif (body.authorIsBot === true) {\n  return [];\n}\n\nconst requiredInput = ['discordUser', 'discordUserId', 'messageTimestamp', 'submittedDate'];\nconst missingInput = requiredInput.filter((key) => !body[key]);\n\nreturn [{\n  json: {\n    discordUser: body.discordUser || 'Unknown user',\n    discordUserId: body.discordUserId || '',\n    messageTimestamp: body.messageTimestamp || new Date().toISOString(),\n    submittedDate: body.submittedDate || new Date().toISOString().slice(0, 10),\n    messageId: body.messageId || '',\n    channelId: body.channelId || '',\n    imageBase64: body.imageBase64 || '',\n    mimeType: body.mimeType || 'image/jpeg',\n    mockScenario: (body.mockScenario || 'approved').toLowerCase(),\n    inputMissingFields: missingInput\n  }\n}];\n"
+      },
+      "id": "a6b48387-c986-4140-806f-5fc139c73202",
+      "name": "Normalize Discord Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "label",
+              "value": "info"
+            },
+            {
+              "name": "event",
+              "value": "MessageReceived"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $json.messageId }}"
+            },
+            {
+              "name": "discordUser",
+              "value": "={{ $json.discordUser }}"
+            },
+            {
+              "name": "messageTimestamp",
+              "value": "={{ $json.messageTimestamp }}"
+            },
+            {
+              "name": "details",
+              "value": "[MOCK] Discord message received and normalized"
+            },
+            {
+              "name": "status",
+              "value": "Received"
+            }
+          ]
+        }
+      },
+      "id": "log-submission-received",
+      "name": "Log - SubmissionReceived",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        260,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// MOCK AI EXTRACTION\n// Returns a response shaped exactly like an OpenAI-compatible /chat/completions reply\n// so that the downstream \"Parse AI Response and Validate\" node works unchanged.\n//\n// The scenario is read from the original webhook body (via Normalize Discord Input):\n//   approved (default) -> full valid receipt -> goes to Sheets Append (Approved)\n//   pending            -> missing required fields -> goes to Sheets Append (Pending Review)\n//   rejected           -> ReceiptDetected: false -> goes to No Receipt branch (no sheet write)\n//   unavailable        -> simulates the LLM API being down -> goes to AI Unavailable branch\n\nconst input = $('Normalize Discord Input').first().json;\nconst scenario = (input.mockScenario || 'approved').toLowerCase();\n\nif (scenario === 'unavailable') {\n  // Mimic the shape the Parse node interprets as apiUnavailable\n  return [{ json: { error: { message: '[MOCK] LLM endpoint unavailable' } } }];\n}\n\nlet receipt;\n\nif (scenario === 'rejected') {\n  receipt = {\n    ReceiptDetected: false,\n    Merchant: null,\n    ReceiptDate: null,\n    Currency: null,\n    TotalAmount: null,\n    VATAmount: null,\n    VATIncluded: null,\n    Category: null,\n    PaymentMethod: null,\n    ReceiptId: null,\n    BusinessPurpose: null,\n    Confidence: 0.0,\n    Notes: '[MOCK] Image is not a receipt.'\n  };\n} else if (scenario === 'pending') {\n  // Valid receipt but with missing required fields (Currency + VATAmount blank)\n  receipt = {\n    ReceiptDetected: true,\n    Merchant: 'Mock Cafe',\n    ReceiptDate: '28-05-2026',\n    Currency: null,\n    TotalAmount: 89.0,\n    VATAmount: null,\n    VATIncluded: 'No',\n    Category: 'Food / Meals',\n    PaymentMethod: 'Company Card',\n    ReceiptId: 'MOCK-PENDING-001',\n    BusinessPurpose: 'Mock pending review scenario',\n    Confidence: 0.42,\n    Notes: '[MOCK] Some required fields are intentionally missing.'\n  };\n} else {\n  // approved (default) — full valid receipt\n  receipt = {\n    ReceiptDetected: true,\n    Merchant: 'Mock Coffee Roasters',\n    ReceiptDate: '28-05-2026',\n    Currency: 'DKK',\n    TotalAmount: 125.50,\n    VATAmount: 25.10,\n    VATIncluded: 'Yes',\n    Category: 'Food / Meals',\n    PaymentMethod: 'Company Card',\n    ReceiptId: 'MOCK-APPROVED-001',\n    BusinessPurpose: 'Mock approved scenario — Google Sheets integration test',\n    Confidence: 0.99,\n    Notes: '[MOCK] Hardcoded valid receipt, no LLM was called.'\n  };\n}\n\n// Shape matches OpenAI/Anthropic-compatible /chat/completions response\nreturn [{\n  json: {\n    id: 'mock-cmpl-' + Date.now(),\n    object: 'chat.completion',\n    model: 'mock-vision-model',\n    choices: [\n      {\n        index: 0,\n        finish_reason: 'stop',\n        message: {\n          role: 'assistant',\n          content: JSON.stringify(receipt)\n        }\n      }\n    ],\n    usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }\n  }\n}];\n"
+      },
+      "id": "d0b0e2b2-877d-4cdc-8c38-f77bb750ac00",
+      "name": "Mock AI Extraction",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst original = $('Normalize Discord Input').first().json;\nconst response = $json;\n\nfunction safeString(value) {\n  if (value === null || value === undefined) return '';\n  return String(value).trim();\n}\n\nfunction parseLlmJson(resp) {\n  if (resp.error || resp.message?.includes?.('Error')) {\n    return { apiUnavailable: true, aiRawText: '', extracted: null };\n  }\n  const text =\n    resp.choices?.[0]?.message?.content ??\n    resp.body?.choices?.[0]?.message?.content ??\n    resp.data?.choices?.[0]?.message?.content ??\n    '';\n  if (!text) {\n    return { apiUnavailable: true, aiRawText: '', extracted: null };\n  }\n  try {\n    const cleaned = text.replace(/^```json\\s*/i, '').replace(/```$/i, '').trim();\n    return { apiUnavailable: false, aiRawText: text, extracted: JSON.parse(cleaned) };\n  } catch (error) {\n    return { apiUnavailable: false, aiRawText: text, extracted: {\n      ReceiptDetected: false,\n      Notes: `AI returned invalid JSON: ${error.message}`\n    }};\n  }\n}\n\nconst parsed = parseLlmJson(response);\n\nif (parsed.apiUnavailable) {\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: true,\n      receiptDetected: false,\n      logEvent: 'AIUnavailable',\n      logLabel: 'error',\n      status: 'Rejected',\n      details: '[MOCK] LLM API failed or returned no usable response.',\n      discordMessage: `⚠️ <@${original.discordUserId}> [MOCK] your receipt could not be processed because the AI service is unavailable. Please try again later.`\n    }\n  }];\n}\n\nconst ai = parsed.extracted || {};\nconst receiptDetected = ai.ReceiptDetected === true;\n\nif (!receiptDetected) {\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: false,\n      receiptDetected: false,\n      logEvent: 'NoReceiptRegistered',\n      logLabel: 'warning',\n      status: 'Rejected',\n      details: safeString(ai.Notes) || 'No receipt was detected in the submitted image.',\n      aiRawText: parsed.aiRawText,\n      discordMessage: `❌ <@${original.discordUserId}> [MOCK] no valid receipt was detected. Please send a new image of the receipt.`\n    }\n  }];\n}\n\nconst merged = {\n  discordUser: original.discordUser,\n  discordUserId: original.discordUserId,\n  messageTimestamp: original.messageTimestamp,\n  submittedDate: original.submittedDate,\n  messageId: original.messageId,\n  channelId: original.channelId,\n  merchant: safeString(ai.Merchant),\n  receiptDate: safeString(ai.ReceiptDate),\n  currency: safeString(ai.Currency),\n  totalAmount: ai.TotalAmount ?? '',\n  vatAmount: ai.VATAmount ?? '',\n  vatIncluded: safeString(ai.VATIncluded),\n  category: safeString(ai.Category),\n  paymentMethod: safeString(ai.PaymentMethod),\n  receiptId: safeString(ai.ReceiptId),\n  businessPurpose: safeString(ai.BusinessPurpose),\n  confidence: ai.Confidence ?? '',\n  notes: safeString(ai.Notes)\n};\n\nconst requiredFields = [\n  ['Merchant', merged.merchant],\n  ['Receipt Date', merged.receiptDate],\n  ['Currency', merged.currency],\n  ['Total Amount', merged.totalAmount],\n  ['VAT Amount', merged.vatAmount],\n  ['Category', merged.category]\n];\n\nconst missingFields = requiredFields\n  .filter(([_, value]) => value === '' || value === null || value === undefined)\n  .map(([field]) => field);\n\nconst hasMissingFields = missingFields.length > 0;\nconst status = hasMissingFields ? 'Pending Review' : 'Approved by Bot';\nconst details = hasMissingFields\n  ? `Missing fields: ${missingFields.join(', ')}`\n  : '[MOCK] All required fields extracted successfully.';\n\n// Sheet row — matches Receipts sheet column order exactly:\n// Employee Name | Submitted Date | Receipt Date | Merchant\n// | Expense Category | Payment Method | Currency\n// | Total Amount | VAT Included | VAT Amount | Status\nconst rowValues = [\n  merged.discordUser,\n  merged.submittedDate,\n  merged.receiptDate,\n  merged.merchant,\n  merged.category,\n  merged.paymentMethod,\n  merged.currency,\n  merged.totalAmount,\n  merged.vatIncluded,\n  merged.vatAmount,\n  status\n];\n\nconst discordMessage = hasMissingFields\n  ? `🟡 <@${merged.discordUserId}> [MOCK] your receipt was detected, but it is missing required data.\\n\\n**Status:** Pending Review\\n**Details:** ${details}\\n\\nPlease re-upload the receipt with the missing information.`\n  : `✅ <@${merged.discordUserId}> [MOCK] your receipt was processed successfully.\\n\\n**Status:** Approved by Bot\\n**Merchant:** ${merged.merchant}\\n**Amount:** ${merged.totalAmount} ${merged.currency}\\n**Category:** ${merged.category}`;\n\nreturn [{\n  json: {\n    ...merged,\n    apiUnavailable: false,\n    receiptDetected: true,\n    hasMissingFields,\n    missingFields,\n    status,\n    details,\n    rowValues,\n    aiRawText: parsed.aiRawText,\n    logEvent: hasMissingFields ? 'AIResponseReceived; MissingFields' : 'AIResponseReceived',\n    logLabel: hasMissingFields ? 'warning' : 'info',\n    discordMessage\n  }\n}];\n"
+      },
+      "id": "7624a547-0bf0-40e6-9d98-b9c14dd7806b",
+      "name": "Parse AI Response and Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "apiUnavailable",
+              "leftValue": "={{$json.apiUnavailable}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9810508d-1f9a-41fc-aa2e-43fd9fdb6224",
+      "name": "IF - AI API unavailable?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "label",
+              "value": "error"
+            },
+            {
+              "name": "event",
+              "value": "AIUnavailable"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $json.messageId }}"
+            },
+            {
+              "name": "discordUser",
+              "value": "={{ $json.discordUser }}"
+            },
+            {
+              "name": "messageTimestamp",
+              "value": "={{ $json.messageTimestamp }}"
+            },
+            {
+              "name": "details",
+              "value": "={{ $json.details }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.status }}"
+            },
+            {
+              "name": "n8nStackTrace",
+              "value": "={{ $json.error?.message || $json.message || null }}"
+            }
+          ]
+        }
+      },
+      "id": "log-ai-unavailable",
+      "name": "Log - AIUnavailable",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.DISCORD_LOG_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.discordMessage }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6c26d5b4-90dc-495d-b479-4e058c4be3e0",
+      "name": "Discord Notify - AI Unavailable",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "=JSON.stringify({ ok: false, status: $json.status, event: $json.logEvent, details: $json.details })",
+        "options": {}
+      },
+      "id": "51ad1b70-fa4f-4764-99e0-06e5a7ad1598",
+      "name": "Respond - AI Unavailable",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "receiptDetected",
+              "leftValue": "={{$json.receiptDetected}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "62d7ad86-a0b3-4165-a9ed-b389d0805b89",
+      "name": "IF - Receipt detected?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1380,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "label",
+              "value": "warning"
+            },
+            {
+              "name": "event",
+              "value": "NoReceiptRegistered"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $json.messageId }}"
+            },
+            {
+              "name": "discordUser",
+              "value": "={{ $json.discordUser }}"
+            },
+            {
+              "name": "messageTimestamp",
+              "value": "={{ $json.messageTimestamp }}"
+            },
+            {
+              "name": "details",
+              "value": "={{ $json.details }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.status }}"
+            }
+          ]
+        }
+      },
+      "id": "log-no-receipt",
+      "name": "Log - NoReceiptRegistered",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.DISCORD_LOG_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.discordMessage }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0b4dfc0c-497c-482b-97fc-49e080e4e49d",
+      "name": "Discord Notify - No Receipt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "=JSON.stringify({ ok: false, status: $json.status, event: $json.logEvent, details: $json.details })",
+        "options": {}
+      },
+      "id": "77ef125f-f46c-4bc4-a086-dcb275149683",
+      "name": "Respond - No Receipt",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1820,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "label",
+              "value": "={{ $json.logLabel }}"
+            },
+            {
+              "name": "event",
+              "value": "={{ $json.logEvent }}"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $json.messageId }}"
+            },
+            {
+              "name": "discordUser",
+              "value": "={{ $json.discordUser }}"
+            },
+            {
+              "name": "messageTimestamp",
+              "value": "={{ $json.messageTimestamp }}"
+            },
+            {
+              "name": "details",
+              "value": "={{ $json.details }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.status }}"
+            },
+            {
+              "name": "receiptDetected",
+              "value": "={{ $json.receiptDetected }}"
+            },
+            {
+              "name": "hasMissingFields",
+              "value": "={{ $json.hasMissingFields }}"
+            },
+            {
+              "name": "missingFields",
+              "value": "={{ $json.missingFields }}"
+            },
+            {
+              "name": "merchant",
+              "value": "={{ $json.merchant }}"
+            },
+            {
+              "name": "receiptDate",
+              "value": "={{ $json.receiptDate }}"
+            },
+            {
+              "name": "category",
+              "value": "={{ $json.category }}"
+            },
+            {
+              "name": "currency",
+              "value": "={{ $json.currency }}"
+            },
+            {
+              "name": "totalAmount",
+              "value": "={{ $json.totalAmount }}"
+            },
+            {
+              "name": "confidence",
+              "value": "={{ $json.confidence }}"
+            }
+          ]
+        }
+      },
+      "id": "log-ai-response",
+      "name": "Log - AIResponseReceived",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1640,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "hasMissingFields",
+              "leftValue": "={{$json.hasMissingFields}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e6a9a9e6-434b-45cd-babb-4ed88cb4f8c5",
+      "name": "IF - Missing required fields?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{$env.GOOGLE_SHEETS_SPREADSHEET_ID}}/values/Receipts:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "values",
+              "value": "={{ [$json.rowValues] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e0759111-e530-4236-80de-5d13eceda849",
+      "name": "Sheets Append - Pending Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        580
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "label",
+              "value": "warning"
+            },
+            {
+              "name": "event",
+              "value": "WroteToExcel"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $json.messageId }}"
+            },
+            {
+              "name": "discordUser",
+              "value": "={{ $json.discordUser }}"
+            },
+            {
+              "name": "messageTimestamp",
+              "value": "={{ $json.messageTimestamp }}"
+            },
+            {
+              "name": "details",
+              "value": "={{ '[MOCK] Row written to Sheets with status Pending Review. ' + $json.details }}"
+            },
+            {
+              "name": "status",
+              "value": "Pending Review"
+            }
+          ]
+        }
+      },
+      "id": "log-pending-wrote",
+      "name": "Log - WroteToExcel (Pending)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        2340,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.DISCORD_LOG_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.discordMessage }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f90074ea-85e6-44ac-9fc1-8f158672d6d3",
+      "name": "Discord Notify - Pending Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2340,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "=JSON.stringify({ ok: true, mock: true, status: $json.status, event: $json.logEvent, details: $json.details, missingFields: $json.missingFields })",
+        "options": {}
+      },
+      "id": "740920ad-c3ee-4902-aff8-cd22fec3aeac",
+      "name": "Respond - Pending Review",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2560,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{$env.GOOGLE_SHEETS_SPREADSHEET_ID}}/values/Receipts:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "values",
+              "value": "={{ [$json.rowValues] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5abb6c97-86b9-47a7-b8d8-a9b146cf4a2f",
+      "name": "Sheets Append - Approved",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        860
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "label",
+              "value": "success"
+            },
+            {
+              "name": "event",
+              "value": "WroteToExcel"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $json.messageId }}"
+            },
+            {
+              "name": "discordUser",
+              "value": "={{ $json.discordUser }}"
+            },
+            {
+              "name": "messageTimestamp",
+              "value": "={{ $json.messageTimestamp }}"
+            },
+            {
+              "name": "details",
+              "value": "[MOCK] Receipt data successfully written to Google Sheets with status Approved by Bot"
+            },
+            {
+              "name": "status",
+              "value": "Approved by Bot"
+            },
+            {
+              "name": "merchant",
+              "value": "={{ $json.merchant }}"
+            },
+            {
+              "name": "receiptDate",
+              "value": "={{ $json.receiptDate }}"
+            },
+            {
+              "name": "category",
+              "value": "={{ $json.category }}"
+            },
+            {
+              "name": "currency",
+              "value": "={{ $json.currency }}"
+            },
+            {
+              "name": "totalAmount",
+              "value": "={{ $json.totalAmount }}"
+            },
+            {
+              "name": "confidence",
+              "value": "={{ $json.confidence }}"
+            }
+          ]
+        }
+      },
+      "id": "log-success",
+      "name": "Log - WroteToExcel (Success)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        2340,
+        860
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.DISCORD_LOG_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.discordMessage }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d00b0180-1ca4-481e-a6bc-5a3d2832670e",
+      "name": "Discord Notify - Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2560,
+        860
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "=JSON.stringify({ ok: true, mock: true, status: $json.status, event: $json.logEvent, details: $json.details })",
+        "options": {}
+      },
+      "id": "bd175bda-daec-41ae-bc52-3c4709b991d4",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2780,
+        860
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Mock-mode notes:\n\nNo LLM env vars are needed for this workflow (LLM_BASE_URL / LLM_API_KEY / LLM_MODEL are unused).\n\nStill required:\n  GOOGLE_SHEETS_SPREADSHEET_ID\n  DISCORD_LOG_WEBHOOK_URL\n  MongoDB credential in n8n: mongodb://admin:password@mongo:27017/expense_rpa?authSource=admin\n\nSheet column order (must match rowValues in Parse node):\nEmployee Name | Submitted Date | Receipt Date | Merchant\n| Expense Category | Payment Method | Currency\n| Total Amount | VAT Included | VAT Amount | Status\n\nIMPORTANT: Import the Logging Subworkflow first,\nthen replace 6Z9jJBQnvvtMps1A in every Log - * node\nwith its workflow ID from the n8n URL.\n\nQuick smoke test (approved path):\ncurl -X POST http://localhost:5678/webhook/expense-submission-mock \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"discordUser\":\"Test\",\"discordUserId\":\"1\",\"messageTimestamp\":\"2026-05-28T10:00:00.000Z\",\"submittedDate\":\"2026-05-28\"}'",
+        "height": 460,
+        "width": 560,
+        "color": 5
+      },
+      "id": "0b3bd961-e1a6-4e23-9f0b-d1e840ed59ea",
+      "name": "README - Mock Mode",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        540,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-sheets-error-pending",
+              "leftValue": "={{$json.error}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-sheets-pending-error",
+      "name": "Sheets Write Failed? (Pending)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2120,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "label",
+              "value": "error"
+            },
+            {
+              "name": "event",
+              "value": "WroteToExcel"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $json.messageId }}"
+            },
+            {
+              "name": "discordUser",
+              "value": "={{ $json.discordUser }}"
+            },
+            {
+              "name": "messageTimestamp",
+              "value": "={{ $json.messageTimestamp }}"
+            },
+            {
+              "name": "details",
+              "value": "[MOCK] Failed to write Pending Review row to Google Sheets"
+            },
+            {
+              "name": "status",
+              "value": "Pending Review"
+            },
+            {
+              "name": "n8nStackTrace",
+              "value": "={{ $json.n8nStackTrace }}"
+            }
+          ]
+        }
+      },
+      "id": "log-sheets-pending-error",
+      "name": "Log - SheetWriteFailed (Pending)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        2340,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "content": "={{ '<@' + $json.discordUserId + '> ⚠️ [MOCK] Your receipt was processed but could not be saved to the expense sheet. Please contact the accountant.' }}",
+        "channelId": {
+          "__rl": true,
+          "value": "PLACEHOLDER_DISCORD_CHANNEL_ID",
+          "mode": "id"
+        }
+      },
+      "id": "discord-sheets-pending-error",
+      "name": "Discord Notify - SheetWriteFailed (Pending)",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        460
+      ],
+      "credentials": {
+        "discordBotApi": {
+          "id": "PLACEHOLDER_DISCORD_CREDENTIAL_ID",
+          "name": "Discord Bot AccountantBot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-sheets-error-approved",
+              "leftValue": "={{$json.error}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-sheets-approved-error",
+      "name": "Sheets Write Failed? (Approved)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2120,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "label",
+              "value": "error"
+            },
+            {
+              "name": "event",
+              "value": "WroteToExcel"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $json.messageId }}"
+            },
+            {
+              "name": "discordUser",
+              "value": "={{ $json.discordUser }}"
+            },
+            {
+              "name": "messageTimestamp",
+              "value": "={{ $json.messageTimestamp }}"
+            },
+            {
+              "name": "details",
+              "value": "[MOCK] Failed to write Approved by Bot row to Google Sheets"
+            },
+            {
+              "name": "status",
+              "value": "Approved by Bot"
+            },
+            {
+              "name": "n8nStackTrace",
+              "value": "={{ $json.error?.message || $json.message || null }}"
+            }
+          ]
+        }
+      },
+      "id": "log-sheets-approved-error",
+      "name": "Log - SheetWriteFailed (Approved)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        2340,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "content": "={{ '<@' + $json.discordUserId + '> ⚠️ [MOCK] Your receipt was processed but could not be saved to the expense sheet. Please contact the accountant.' }}",
+        "channelId": {
+          "__rl": true,
+          "value": "PLACEHOLDER_DISCORD_CHANNEL_ID",
+          "mode": "id"
+        }
+      },
+      "id": "discord-sheets-approved-error",
+      "name": "Discord Notify - SheetWriteFailed (Approved)",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        760
+      ],
+      "credentials": {
+        "discordBotApi": {
+          "id": "PLACEHOLDER_DISCORD_CREDENTIAL_ID",
+          "name": "Discord Bot AccountantBot"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Discord Receipt Submission": {
+      "main": [
+        [
+          {
+            "node": "Normalize Discord Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Discord Input": {
+      "main": [
+        [
+          {
+            "node": "Log - SubmissionReceived",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log - SubmissionReceived": {
+      "main": [
+        [
+          {
+            "node": "Mock AI Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock AI Extraction": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response and Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response and Validate": {
+      "main": [
+        [
+          {
+            "node": "IF - AI API unavailable?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - AI API unavailable?": {
+      "main": [
+        [
+          {
+            "node": "Log - AIUnavailable",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Discord Notify - AI Unavailable",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF - Receipt detected?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord Notify - AI Unavailable": {
+      "main": [
+        [
+          {
+            "node": "Respond - AI Unavailable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Receipt detected?": {
+      "main": [
+        [
+          {
+            "node": "Log - AIResponseReceived",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log - NoReceiptRegistered",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Discord Notify - No Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord Notify - No Receipt": {
+      "main": [
+        [
+          {
+            "node": "Respond - No Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log - AIResponseReceived": {
+      "main": [
+        [
+          {
+            "node": "IF - Missing required fields?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Missing required fields?": {
+      "main": [
+        [
+          {
+            "node": "Sheets Append - Pending Review",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheets Append - Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets Append - Pending Review": {
+      "main": [
+        [
+          {
+            "node": "Sheets Write Failed? (Pending)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord Notify - Pending Review": {
+      "main": [
+        [
+          {
+            "node": "Respond - Pending Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets Append - Approved": {
+      "main": [
+        [
+          {
+            "node": "Sheets Write Failed? (Approved)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord Notify - Success": {
+      "main": [
+        [
+          {
+            "node": "Respond - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets Write Failed? (Pending)": {
+      "main": [
+        [
+          {
+            "node": "Log - WroteToExcel (Pending)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Discord Notify - Pending Review",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log - SheetWriteFailed (Pending)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Discord Notify - SheetWriteFailed (Pending)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log - SheetWriteFailed (Pending)": {
+      "main": [
+        []
+      ]
+    },
+    "Discord Notify - SheetWriteFailed (Pending)": {
+      "main": [
+        []
+      ]
+    },
+    "Sheets Write Failed? (Approved)": {
+      "main": [
+        [
+          {
+            "node": "Log - WroteToExcel (Success)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Discord Notify - Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log - SheetWriteFailed (Approved)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Discord Notify - SheetWriteFailed (Approved)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log - SheetWriteFailed (Approved)": {
+      "main": [
+        []
+      ]
+    },
+    "Discord Notify - SheetWriteFailed (Approved)": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "description": "Mock-AI variant of the AccountantBot workflow. The LLM HTTP call is replaced with a Code node that returns a hardcoded receipt, so the workflow exercises only the Google Sheets, Discord, and MongoDB logging integrations."
+  },
+  "tags": []
+}

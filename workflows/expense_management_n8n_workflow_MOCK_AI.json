@@ -473,31 +473,68 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{$env.GOOGLE_SHEETS_SPREADSHEET_ID}}/values/Receipts:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "googleSheetsOAuth2Api",
-        "sendBody": true,
-        "specifyBody": "keypair",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "values",
-              "value": "={{ [$json.rowValues] }}"
-            }
-          ]
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{$env.GOOGLE_SHEETS_SPREADSHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Receipts",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Employee Name": "={{ $json.discordUser }}",
+            "Submitted Date": "={{ $json.submittedDate }}",
+            "Message Timestamp": "={{ $json.messageTimestamp }}",
+            "Receipt Date": "={{ $json.receiptDate }}",
+            "Merchant": "={{ $json.merchant }}",
+            "Expense Category": "={{ $json.category }}",
+            "Payment Method": "={{ $json.paymentMethod }}",
+            "Currency": "={{ $json.currency }}",
+            "Total Amount": "={{ $json.totalAmount }}",
+            "VAT Included": "={{ $json.vatIncluded }}",
+            "VAT Amount": "={{ $json.vatAmount }}",
+            "Status": "={{ $json.status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "Employee Name",     "displayName": "Employee Name",     "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Submitted Date",    "displayName": "Submitted Date",    "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Message Timestamp", "displayName": "Message Timestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Receipt Date",      "displayName": "Receipt Date",      "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Merchant",          "displayName": "Merchant",          "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Expense Category",  "displayName": "Expense Category",  "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Payment Method",    "displayName": "Payment Method",    "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Currency",          "displayName": "Currency",          "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Total Amount",      "displayName": "Total Amount",      "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": true },
+            { "id": "VAT Included",      "displayName": "VAT Included",      "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "VAT Amount",        "displayName": "VAT Amount",        "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": true },
+            { "id": "Status",            "displayName": "Status",            "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
         "options": {}
       },
       "id": "e0759111-e530-4236-80de-5d13eceda849",
       "name": "Sheets Append - Pending Review",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
       "position": [
         2120,
         580
       ],
-      "continueOnFail": true
+      "continueOnFail": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PLACEHOLDER_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets OAuth2"
+        }
+      }
     },
     {
       "parameters": {
@@ -586,31 +623,68 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{$env.GOOGLE_SHEETS_SPREADSHEET_ID}}/values/Receipts:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "googleSheetsOAuth2Api",
-        "sendBody": true,
-        "specifyBody": "keypair",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "values",
-              "value": "={{ [$json.rowValues] }}"
-            }
-          ]
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{$env.GOOGLE_SHEETS_SPREADSHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Receipts",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Employee Name": "={{ $json.discordUser }}",
+            "Submitted Date": "={{ $json.submittedDate }}",
+            "Message Timestamp": "={{ $json.messageTimestamp }}",
+            "Receipt Date": "={{ $json.receiptDate }}",
+            "Merchant": "={{ $json.merchant }}",
+            "Expense Category": "={{ $json.category }}",
+            "Payment Method": "={{ $json.paymentMethod }}",
+            "Currency": "={{ $json.currency }}",
+            "Total Amount": "={{ $json.totalAmount }}",
+            "VAT Included": "={{ $json.vatIncluded }}",
+            "VAT Amount": "={{ $json.vatAmount }}",
+            "Status": "={{ $json.status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "Employee Name",     "displayName": "Employee Name",     "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Submitted Date",    "displayName": "Submitted Date",    "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Message Timestamp", "displayName": "Message Timestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Receipt Date",      "displayName": "Receipt Date",      "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Merchant",          "displayName": "Merchant",          "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Expense Category",  "displayName": "Expense Category",  "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Payment Method",    "displayName": "Payment Method",    "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Currency",          "displayName": "Currency",          "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Total Amount",      "displayName": "Total Amount",      "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": true },
+            { "id": "VAT Included",      "displayName": "VAT Included",      "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "VAT Amount",        "displayName": "VAT Amount",        "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": true },
+            { "id": "Status",            "displayName": "Status",            "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
         "options": {}
       },
       "id": "5abb6c97-86b9-47a7-b8d8-a9b146cf4a2f",
       "name": "Sheets Append - Approved",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
       "position": [
         2120,
         860
       ],
-      "continueOnFail": true
+      "continueOnFail": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PLACEHOLDER_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets OAuth2"
+        }
+      }
     },
     {
       "parameters": {

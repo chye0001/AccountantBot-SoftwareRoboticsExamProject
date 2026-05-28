@@ -48,40 +48,92 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "Pg6WVXXoo0lun2yr",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "SubmissionReceived",
+            "messageId": "={{ $json.messageId }}",
+            "discordUser": "={{ $json.discordUser }}",
+            "messageTimestamp": "={{ $json.messageTimestamp }}",
+            "details": "=[MOCK] Submission accepted from {{ $json.discordUser }} (scenario: {{ $json.mockScenario }})"
+          },
+          "matchingColumns": [],
+          "schema": [
             {
-              "name": "label",
-              "value": "info"
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "event",
-              "value": "SubmissionReceived"
+              "id": "event",
+              "displayName": "event",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageId",
-              "value": "={{ $json.messageId }}"
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "discordUser",
-              "value": "={{ $json.discordUser }}"
+              "id": "discordUser",
+              "displayName": "discordUser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageTimestamp",
-              "value": "={{ $json.messageTimestamp }}"
+              "id": "messageTimestamp",
+              "displayName": "messageTimestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "details",
-              "value": "=[MOCK] Submission accepted from {{ $json.discordUser }} (scenario: {{ $json.mockScenario }})"
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
-          ]
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-submission-received",
       "name": "Log - SubmissionReceived",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         260,
         520
@@ -148,44 +200,103 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "Pg6WVXXoo0lun2yr",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "error",
+            "event": "AIUnavailable",
+            "messageId": "={{ $json.messageId }}",
+            "discordUser": "={{ $json.discordUser }}",
+            "messageTimestamp": "={{ $json.messageTimestamp }}",
+            "details": "={{ $json.details }}",
+            "N8NStackTrace": "={{ $json.error?.message || $json.message || '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
             {
-              "name": "label",
-              "value": "error"
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "event",
-              "value": "AIUnavailable"
+              "id": "event",
+              "displayName": "event",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageId",
-              "value": "={{ $json.messageId }}"
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "discordUser",
-              "value": "={{ $json.discordUser }}"
+              "id": "discordUser",
+              "displayName": "discordUser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageTimestamp",
-              "value": "={{ $json.messageTimestamp }}"
+              "id": "messageTimestamp",
+              "displayName": "messageTimestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "details",
-              "value": "={{ $json.details }}"
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "N8NStackTrace",
-              "value": "={{ $json.error?.message || $json.message || '' }}"
+              "id": "N8NStackTrace",
+              "displayName": "N8NStackTrace",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
-          ]
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-ai-unavailable",
       "name": "Log - AIUnavailable",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         1340,
         140
@@ -219,7 +330,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "=JSON.stringify({ ok: false, status: $json.status, event: $json.logEvent, details: $json.details })",
+        "responseBody": "={{ ({ ok: false, status: $('Parse AI Response and Validate').item.json.status, event: $('Parse AI Response and Validate').item.json.logEvent, details: $('Parse AI Response and Validate').item.json.details }) }}",
         "options": {}
       },
       "id": "51ad1b70-fa4f-4764-99e0-06e5a7ad1598",
@@ -266,40 +377,92 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "Pg6WVXXoo0lun2yr",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "={{ $json.logLabel }}",
+            "event": "={{ $json.logEvent }}",
+            "messageId": "={{ $json.messageId }}",
+            "discordUser": "={{ $json.discordUser }}",
+            "messageTimestamp": "={{ $json.messageTimestamp }}",
+            "details": "={{ $json.details }}"
+          },
+          "matchingColumns": [],
+          "schema": [
             {
-              "name": "label",
-              "value": "={{ $json.logLabel }}"
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "event",
-              "value": "={{ $json.logEvent }}"
+              "id": "event",
+              "displayName": "event",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageId",
-              "value": "={{ $json.messageId }}"
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "discordUser",
-              "value": "={{ $json.discordUser }}"
+              "id": "discordUser",
+              "displayName": "discordUser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageTimestamp",
-              "value": "={{ $json.messageTimestamp }}"
+              "id": "messageTimestamp",
+              "displayName": "messageTimestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "details",
-              "value": "={{ $json.details }}"
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
-          ]
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-no-receipt",
       "name": "Log - NoReceiptDetected",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         1600,
         400
@@ -333,7 +496,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "=JSON.stringify({ ok: false, status: $json.status, event: $json.logEvent, details: $json.details })",
+        "responseBody": "={{ ({ ok: false, status: $('Parse AI Response and Validate').item.json.status, event: $('Parse AI Response and Validate').item.json.logEvent, details: $('Parse AI Response and Validate').item.json.details }) }}",
         "options": {}
       },
       "id": "77ef125f-f46c-4bc4-a086-dcb275149683",
@@ -347,40 +510,92 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "Pg6WVXXoo0lun2yr",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "AIResponseReceived",
+            "messageId": "={{ $json.messageId }}",
+            "discordUser": "={{ $json.discordUser }}",
+            "messageTimestamp": "={{ $json.messageTimestamp }}",
+            "details": "={{ $json.details }}"
+          },
+          "matchingColumns": [],
+          "schema": [
             {
-              "name": "label",
-              "value": "info"
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "event",
-              "value": "AIResponseReceived"
+              "id": "event",
+              "displayName": "event",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageId",
-              "value": "={{ $json.messageId }}"
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "discordUser",
-              "value": "={{ $json.discordUser }}"
+              "id": "discordUser",
+              "displayName": "discordUser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageTimestamp",
-              "value": "={{ $json.messageTimestamp }}"
+              "id": "messageTimestamp",
+              "displayName": "messageTimestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "details",
-              "value": "={{ $json.details }}"
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
-          ]
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-ai-response",
       "name": "Log - AIResponseReceived",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         1640,
         680
@@ -397,7 +612,7 @@
           "conditions": [
             {
               "id": "hasMissingFields",
-              "leftValue": "={{$json.hasMissingFields}}",
+              "leftValue": "={{ $('Parse AI Response and Validate').item.json.hasMissingFields }}",
               "rightValue": true,
               "operator": {
                 "type": "boolean",
@@ -435,33 +650,129 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "Employee Name": "={{ $json.discordUser }}",
-            "Submitted Date": "={{ $json.submittedDate }}",
-            "Message Timestamp": "={{ $json.messageTimestamp }}",
-            "Receipt Date": "={{ $json.receiptDate }}",
-            "Merchant": "={{ $json.merchant }}",
-            "Expense Category": "={{ $json.category }}",
-            "Payment Method": "={{ $json.paymentMethod }}",
-            "Currency": "={{ $json.currency }}",
-            "Total Amount": "={{ $json.totalAmount }}",
-            "VAT Included": "={{ $json.vatIncluded }}",
-            "VAT Amount": "={{ $json.vatAmount }}",
-            "Status": "={{ $json.status }}"
+            "Employee Name": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "Submitted Date": "={{ $('Parse AI Response and Validate').item.json.submittedDate }}",
+            "Message Timestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "Receipt Date": "={{ $('Parse AI Response and Validate').item.json.receiptDate }}",
+            "Merchant": "={{ $('Parse AI Response and Validate').item.json.merchant }}",
+            "Expense Category": "={{ $('Parse AI Response and Validate').item.json.category }}",
+            "Payment Method": "={{ $('Parse AI Response and Validate').item.json.paymentMethod }}",
+            "Currency": "={{ $('Parse AI Response and Validate').item.json.currency }}",
+            "Total Amount": "={{ $('Parse AI Response and Validate').item.json.totalAmount }}",
+            "VAT Included": "={{ $('Parse AI Response and Validate').item.json.vatIncluded }}",
+            "VAT Amount": "={{ $('Parse AI Response and Validate').item.json.vatAmount }}",
+            "Status": "={{ $('Parse AI Response and Validate').item.json.status }}"
           },
           "matchingColumns": [],
           "schema": [
-            { "id": "Employee Name",     "displayName": "Employee Name",     "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Submitted Date",    "displayName": "Submitted Date",    "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Message Timestamp", "displayName": "Message Timestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Receipt Date",      "displayName": "Receipt Date",      "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Merchant",          "displayName": "Merchant",          "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Expense Category",  "displayName": "Expense Category",  "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Payment Method",    "displayName": "Payment Method",    "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Currency",          "displayName": "Currency",          "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Total Amount",      "displayName": "Total Amount",      "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": true },
-            { "id": "VAT Included",      "displayName": "VAT Included",      "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "VAT Amount",        "displayName": "VAT Amount",        "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": true },
-            { "id": "Status",            "displayName": "Status",            "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+            {
+              "id": "Employee Name",
+              "displayName": "Employee Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Submitted Date",
+              "displayName": "Submitted Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message Timestamp",
+              "displayName": "Message Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Receipt Date",
+              "displayName": "Receipt Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Merchant",
+              "displayName": "Merchant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Expense Category",
+              "displayName": "Expense Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Payment Method",
+              "displayName": "Payment Method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Currency",
+              "displayName": "Currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Amount",
+              "displayName": "Total Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "VAT Included",
+              "displayName": "VAT Included",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "VAT Amount",
+              "displayName": "VAT Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
@@ -486,40 +797,92 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "Pg6WVXXoo0lun2yr",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "SheetAppendSucceeded",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "=[MOCK] Appended row to Receipts as Pending Review. Range: {{ $json.updates?.updatedRange || $json.tableRange || 'unknown' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
             {
-              "name": "label",
-              "value": "info"
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "event",
-              "value": "SheetAppendSucceeded"
+              "id": "event",
+              "displayName": "event",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageId",
-              "value": "={{ $('Parse AI Response and Validate').item.json.messageId }}"
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "discordUser",
-              "value": "={{ $('Parse AI Response and Validate').item.json.discordUser }}"
+              "id": "discordUser",
+              "displayName": "discordUser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageTimestamp",
-              "value": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}"
+              "id": "messageTimestamp",
+              "displayName": "messageTimestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "details",
-              "value": "=[MOCK] Appended row to Receipts as Pending Review. Range: {{ $json.updates?.updatedRange || $json.tableRange || 'unknown' }}"
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
-          ]
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-pending-wrote",
       "name": "Log - SheetAppendSucceeded (Pending)",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         2340,
         580
@@ -553,7 +916,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "=JSON.stringify({ ok: true, mock: true, status: $('Parse AI Response and Validate').item.json.status, event: $('Parse AI Response and Validate').item.json.logEvent, details: $('Parse AI Response and Validate').item.json.details, missingFields: $('Parse AI Response and Validate').item.json.missingFields })",
+        "responseBody": "={{ ({ ok: true, mock: true, status: $('Parse AI Response and Validate').item.json.status, event: $('Parse AI Response and Validate').item.json.logEvent, details: $('Parse AI Response and Validate').item.json.details, missingFields: $('Parse AI Response and Validate').item.json.missingFields }) }}",
         "options": {}
       },
       "id": "740920ad-c3ee-4902-aff8-cd22fec3aeac",
@@ -581,33 +944,129 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "Employee Name": "={{ $json.discordUser }}",
-            "Submitted Date": "={{ $json.submittedDate }}",
-            "Message Timestamp": "={{ $json.messageTimestamp }}",
-            "Receipt Date": "={{ $json.receiptDate }}",
-            "Merchant": "={{ $json.merchant }}",
-            "Expense Category": "={{ $json.category }}",
-            "Payment Method": "={{ $json.paymentMethod }}",
-            "Currency": "={{ $json.currency }}",
-            "Total Amount": "={{ $json.totalAmount }}",
-            "VAT Included": "={{ $json.vatIncluded }}",
-            "VAT Amount": "={{ $json.vatAmount }}",
-            "Status": "={{ $json.status }}"
+            "Employee Name": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "Submitted Date": "={{ $('Parse AI Response and Validate').item.json.submittedDate }}",
+            "Message Timestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "Receipt Date": "={{ $('Parse AI Response and Validate').item.json.receiptDate }}",
+            "Merchant": "={{ $('Parse AI Response and Validate').item.json.merchant }}",
+            "Expense Category": "={{ $('Parse AI Response and Validate').item.json.category }}",
+            "Payment Method": "={{ $('Parse AI Response and Validate').item.json.paymentMethod }}",
+            "Currency": "={{ $('Parse AI Response and Validate').item.json.currency }}",
+            "Total Amount": "={{ $('Parse AI Response and Validate').item.json.totalAmount }}",
+            "VAT Included": "={{ $('Parse AI Response and Validate').item.json.vatIncluded }}",
+            "VAT Amount": "={{ $('Parse AI Response and Validate').item.json.vatAmount }}",
+            "Status": "={{ $('Parse AI Response and Validate').item.json.status }}"
           },
           "matchingColumns": [],
           "schema": [
-            { "id": "Employee Name",     "displayName": "Employee Name",     "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Submitted Date",    "displayName": "Submitted Date",    "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Message Timestamp", "displayName": "Message Timestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Receipt Date",      "displayName": "Receipt Date",      "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Merchant",          "displayName": "Merchant",          "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Expense Category",  "displayName": "Expense Category",  "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Payment Method",    "displayName": "Payment Method",    "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Currency",          "displayName": "Currency",          "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "Total Amount",      "displayName": "Total Amount",      "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": true },
-            { "id": "VAT Included",      "displayName": "VAT Included",      "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
-            { "id": "VAT Amount",        "displayName": "VAT Amount",        "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": true },
-            { "id": "Status",            "displayName": "Status",            "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+            {
+              "id": "Employee Name",
+              "displayName": "Employee Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Submitted Date",
+              "displayName": "Submitted Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message Timestamp",
+              "displayName": "Message Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Receipt Date",
+              "displayName": "Receipt Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Merchant",
+              "displayName": "Merchant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Expense Category",
+              "displayName": "Expense Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Payment Method",
+              "displayName": "Payment Method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Currency",
+              "displayName": "Currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Amount",
+              "displayName": "Total Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "VAT Included",
+              "displayName": "VAT Included",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "VAT Amount",
+              "displayName": "VAT Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
@@ -632,40 +1091,92 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "Pg6WVXXoo0lun2yr",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "SheetAppendSucceeded",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "=[MOCK] Appended row to Receipts as Approved by Bot. Range: {{ $json.updates?.updatedRange || $json.tableRange || 'unknown' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
             {
-              "name": "label",
-              "value": "info"
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "event",
-              "value": "SheetAppendSucceeded"
+              "id": "event",
+              "displayName": "event",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageId",
-              "value": "={{ $('Parse AI Response and Validate').item.json.messageId }}"
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "discordUser",
-              "value": "={{ $('Parse AI Response and Validate').item.json.discordUser }}"
+              "id": "discordUser",
+              "displayName": "discordUser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageTimestamp",
-              "value": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}"
+              "id": "messageTimestamp",
+              "displayName": "messageTimestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "details",
-              "value": "=[MOCK] Appended row to Receipts as Approved by Bot. Range: {{ $json.updates?.updatedRange || $json.tableRange || 'unknown' }}"
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
-          ]
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-success",
       "name": "Log - SheetAppendSucceeded (Approved)",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         2340,
         860
@@ -699,7 +1210,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "=JSON.stringify({ ok: true, mock: true, status: $('Parse AI Response and Validate').item.json.status, event: $('Parse AI Response and Validate').item.json.logEvent, details: $('Parse AI Response and Validate').item.json.details })",
+        "responseBody": "={{ ({ ok: true, mock: true, status: $('Parse AI Response and Validate').item.json.status, event: $('Parse AI Response and Validate').item.json.logEvent, details: $('Parse AI Response and Validate').item.json.details }) }}",
         "options": {}
       },
       "id": "bd175bda-daec-41ae-bc52-3c4709b991d4",
@@ -713,7 +1224,7 @@
     },
     {
       "parameters": {
-        "content": "Mock-mode notes:\n\nNo LLM env vars are needed for this workflow (LLM_BASE_URL / LLM_API_KEY / LLM_MODEL are unused).\n\nStill required:\n  GOOGLE_SHEETS_SPREADSHEET_ID\n  DISCORD_LOG_WEBHOOK_URL\n  MongoDB credential in n8n: mongodb://admin:password@mongo:27017/expense_rpa?authSource=admin\n  Google Sheets credential (reattach 'Google Sheets OAuth2' on both Sheets Append nodes)\n\nSheet columns (Receipts tab — Sheets Append nodes map by header name):\nEmployee Name | Submitted Date | Message Timestamp | Receipt Date | Merchant\n| Expense Category | Payment Method | Currency\n| Total Amount | VAT Included | VAT Amount | Status\n\nLog event taxonomy (see Mongo `logs` collection):\n  SubmissionReceived    (info)\n  AIExtractionRequested (info)\n  AIUnavailable         (error)\n  AIResponseInvalid     (error)\n  AIResponseReceived    (info)\n  NoReceiptDetected     (warning)\n  MissingRequiredFields (warning)\n  SheetAppendSucceeded  (info)\n  SheetAppendFailed     (error)\n  WorkflowCompleted     (info)\n\nDocument shape per log (enforced by the logging subworkflow):\n  label, event, logTimestamp, messageId,\n  discordUser, messageTimestamp, details,\n  N8NStackTrace (only on errors)\n\nIMPORTANT: Import the Logging Subworkflow first,\nthen replace 6Z9jJBQnvvtMps1A in every Log - * node\nwith its workflow ID from the n8n URL.\n\nQuick smoke test (approved path):\ncurl -X POST http://localhost:5678/webhook/expense-submission-mock \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"discordUser\":\"Test\",\"discordUserId\":\"1\",\"messageTimestamp\":\"2026-05-28T10:00:00.000Z\",\"submittedDate\":\"2026-05-28\",\"mockScenario\":\"approved\"}'",
+        "content": "Mock-mode notes:\n\nNo LLM env vars are needed for this workflow (LLM_BASE_URL / LLM_API_KEY / LLM_MODEL are unused).\n\nStill required:\n  GOOGLE_SHEETS_SPREADSHEET_ID\n  DISCORD_LOG_WEBHOOK_URL\n  MongoDB credential in n8n: mongodb://admin:password@mongo:27017/expense_rpa?authSource=admin\n  Google Sheets credential (reattach 'Google Sheets OAuth2' on both Sheets Append nodes)\n\nSheet columns (Receipts tab — Sheets Append nodes map by header name):\nEmployee Name | Submitted Date | Message Timestamp | Receipt Date | Merchant\n| Expense Category | Payment Method | Currency\n| Total Amount | VAT Included | VAT Amount | Status\n\nLog event taxonomy (see Mongo `logs` collection):\n  SubmissionReceived    (info)\n  AIExtractionRequested (info)\n  AIUnavailable         (error)\n  AIResponseInvalid     (error)\n  AIResponseReceived    (info)\n  NoReceiptDetected     (warning)\n  MissingRequiredFields (warning)\n  SheetAppendSucceeded  (info)\n  SheetAppendFailed     (error)\n  WorkflowCompleted     (info)\n\nDocument shape per log (enforced by the logging subworkflow):\n  label, event, logTimestamp, messageId,\n  discordUser, messageTimestamp, details,\n  N8NStackTrace (only on errors)\n\nIMPORTANT: Import the Logging Subworkflow first,\nthen replace Pg6WVXXoo0lun2yr in every Log - * node\nwith its workflow ID from the n8n URL.\n\nQuick smoke test (approved path):\ncurl -X POST http://localhost:5678/webhook/expense-submission-mock \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"discordUser\":\"Test\",\"discordUserId\":\"1\",\"messageTimestamp\":\"2026-05-28T10:00:00.000Z\",\"submittedDate\":\"2026-05-28\",\"mockScenario\":\"approved\"}'",
         "height": 460,
         "width": 560,
         "color": 5
@@ -762,44 +1273,103 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "Pg6WVXXoo0lun2yr",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "error",
+            "event": "SheetAppendFailed",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "[MOCK] Failed to append Pending Review row to Google Sheets.",
+            "N8NStackTrace": "={{ $json.error?.message || $json.error || $json.message || '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
             {
-              "name": "label",
-              "value": "error"
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "event",
-              "value": "SheetAppendFailed"
+              "id": "event",
+              "displayName": "event",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageId",
-              "value": "={{ $('Parse AI Response and Validate').item.json.messageId }}"
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "discordUser",
-              "value": "={{ $('Parse AI Response and Validate').item.json.discordUser }}"
+              "id": "discordUser",
+              "displayName": "discordUser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageTimestamp",
-              "value": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}"
+              "id": "messageTimestamp",
+              "displayName": "messageTimestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "details",
-              "value": "[MOCK] Failed to append Pending Review row to Google Sheets."
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "N8NStackTrace",
-              "value": "={{ $json.error?.message || $json.error || $json.message || '' }}"
+              "id": "N8NStackTrace",
+              "displayName": "N8NStackTrace",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
-          ]
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-sheets-pending-error",
       "name": "Log - SheetAppendFailed (Pending)",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         2340,
         460
@@ -864,44 +1434,103 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "Pg6WVXXoo0lun2yr",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "error",
+            "event": "SheetAppendFailed",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "[MOCK] Failed to append Approved by Bot row to Google Sheets.",
+            "N8NStackTrace": "={{ $json.error?.message || $json.error || $json.message || '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
             {
-              "name": "label",
-              "value": "error"
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "event",
-              "value": "SheetAppendFailed"
+              "id": "event",
+              "displayName": "event",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageId",
-              "value": "={{ $('Parse AI Response and Validate').item.json.messageId }}"
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "discordUser",
-              "value": "={{ $('Parse AI Response and Validate').item.json.discordUser }}"
+              "id": "discordUser",
+              "displayName": "discordUser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "messageTimestamp",
-              "value": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}"
+              "id": "messageTimestamp",
+              "displayName": "messageTimestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "details",
-              "value": "[MOCK] Failed to append Approved by Bot row to Google Sheets."
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
-              "name": "N8NStackTrace",
-              "value": "={{ $json.error?.message || $json.error || $json.message || '' }}"
+              "id": "N8NStackTrace",
+              "displayName": "N8NStackTrace",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
-          ]
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-sheets-approved-error",
       "name": "Log - SheetAppendFailed (Approved)",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         2340,
         760
@@ -933,22 +1562,92 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "Pg6WVXXoo0lun2yr",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
-            { "name": "label", "value": "info" },
-            { "name": "event", "value": "AIExtractionRequested" },
-            { "name": "messageId", "value": "={{ $json.messageId }}" },
-            { "name": "discordUser", "value": "={{ $json.discordUser }}" },
-            { "name": "messageTimestamp", "value": "={{ $json.messageTimestamp }}" },
-            { "name": "details", "value": "=[MOCK] Calling mock AI extraction for scenario '{{ $json.mockScenario }}' (no LLM invoked)" }
-          ]
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "AIExtractionRequested",
+            "messageId": "={{ $('Normalize Discord Input').item.json.messageId }}",
+            "discordUser": "={{ $('Normalize Discord Input').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Normalize Discord Input').item.json.messageTimestamp }}",
+            "details": "=[MOCK] Calling mock AI extraction for scenario '{{ $('Normalize Discord Input').item.json.mockScenario }}' (no LLM invoked)"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "event",
+              "displayName": "event",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discordUser",
+              "displayName": "discordUser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "messageTimestamp",
+              "displayName": "messageTimestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-ai-extraction-requested",
       "name": "Log - AIExtractionRequested",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         420,
         420
@@ -956,22 +1655,92 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "Pg6WVXXoo0lun2yr",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
-            { "name": "label", "value": "warning" },
-            { "name": "event", "value": "MissingRequiredFields" },
-            { "name": "messageId", "value": "={{ $json.messageId }}" },
-            { "name": "discordUser", "value": "={{ $json.discordUser }}" },
-            { "name": "messageTimestamp", "value": "={{ $json.messageTimestamp }}" },
-            { "name": "details", "value": "={{ $json.missingDetails }}" }
-          ]
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "warning",
+            "event": "MissingRequiredFields",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "={{ $('Parse AI Response and Validate').item.json.missingDetails }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "event",
+              "displayName": "event",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discordUser",
+              "displayName": "discordUser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "messageTimestamp",
+              "displayName": "messageTimestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-missing-fields",
       "name": "Log - MissingRequiredFields",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         2020,
         500
@@ -979,22 +1748,92 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "Pg6WVXXoo0lun2yr",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
-            { "name": "label", "value": "info" },
-            { "name": "event", "value": "WorkflowCompleted" },
-            { "name": "messageId", "value": "={{ $('Parse AI Response and Validate').item.json.messageId }}" },
-            { "name": "discordUser", "value": "={{ $('Parse AI Response and Validate').item.json.discordUser }}" },
-            { "name": "messageTimestamp", "value": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}" },
-            { "name": "details", "value": "[MOCK] Submission halted — AI unavailable. Final status: Rejected." }
-          ]
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "WorkflowCompleted",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "[MOCK] Submission halted — AI unavailable. Final status: Rejected."
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "event",
+              "displayName": "event",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discordUser",
+              "displayName": "discordUser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "messageTimestamp",
+              "displayName": "messageTimestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-completed-ai-unavailable",
       "name": "Log - WorkflowCompleted (AI Unavailable)",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         1450,
         380
@@ -1002,22 +1841,92 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "Pg6WVXXoo0lun2yr",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
-            { "name": "label", "value": "info" },
-            { "name": "event", "value": "WorkflowCompleted" },
-            { "name": "messageId", "value": "={{ $('Parse AI Response and Validate').item.json.messageId }}" },
-            { "name": "discordUser", "value": "={{ $('Parse AI Response and Validate').item.json.discordUser }}" },
-            { "name": "messageTimestamp", "value": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}" },
-            { "name": "details", "value": "=[MOCK] Submission halted — {{ $('Parse AI Response and Validate').item.json.logEvent }}. Final status: Rejected." }
-          ]
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "WorkflowCompleted",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "=[MOCK] Submission halted — {{ $('Parse AI Response and Validate').item.json.logEvent }}. Final status: Rejected."
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "event",
+              "displayName": "event",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discordUser",
+              "displayName": "discordUser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "messageTimestamp",
+              "displayName": "messageTimestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-completed-no-receipt",
       "name": "Log - WorkflowCompleted (No Receipt)",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         1710,
         640
@@ -1025,22 +1934,92 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "Pg6WVXXoo0lun2yr",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
-            { "name": "label", "value": "info" },
-            { "name": "event", "value": "WorkflowCompleted" },
-            { "name": "messageId", "value": "={{ $('Parse AI Response and Validate').item.json.messageId }}" },
-            { "name": "discordUser", "value": "={{ $('Parse AI Response and Validate').item.json.discordUser }}" },
-            { "name": "messageTimestamp", "value": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}" },
-            { "name": "details", "value": "[MOCK] Submission processed end-to-end. Final status: Pending Review." }
-          ]
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "WorkflowCompleted",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "[MOCK] Submission processed end-to-end. Final status: Pending Review."
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "event",
+              "displayName": "event",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discordUser",
+              "displayName": "discordUser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "messageTimestamp",
+              "displayName": "messageTimestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-completed-pending",
       "name": "Log - WorkflowCompleted (Pending)",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         2450,
         800
@@ -1048,22 +2027,92 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "Pg6WVXXoo0lun2yr",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
-            { "name": "label", "value": "info" },
-            { "name": "event", "value": "WorkflowCompleted" },
-            { "name": "messageId", "value": "={{ $('Parse AI Response and Validate').item.json.messageId }}" },
-            { "name": "discordUser", "value": "={{ $('Parse AI Response and Validate').item.json.discordUser }}" },
-            { "name": "messageTimestamp", "value": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}" },
-            { "name": "details", "value": "[MOCK] Submission processed end-to-end. Final status: Approved by Bot." }
-          ]
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "WorkflowCompleted",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "[MOCK] Submission processed end-to-end. Final status: Approved by Bot."
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "event",
+              "displayName": "event",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discordUser",
+              "displayName": "discordUser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "messageTimestamp",
+              "displayName": "messageTimestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-completed-success",
       "name": "Log - WorkflowCompleted (Approved)",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         2670,
         940

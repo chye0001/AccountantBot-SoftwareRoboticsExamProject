@@ -3,12 +3,23 @@
   "nodes": [
     {
       "parameters": {
-        "inputSource": "passthrough"
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            { "name": "label",            "type": "string" },
+            { "name": "event",            "type": "string" },
+            { "name": "messageId",        "type": "string" },
+            { "name": "discordUser",      "type": "string" },
+            { "name": "messageTimestamp", "type": "string" },
+            { "name": "details",          "type": "string" },
+            { "name": "N8NStackTrace",    "type": "string" }
+          ]
+        }
       },
       "id": "log-trigger-1",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
-      "typeVersion": 1,
+      "typeVersion": 1.1,
       "position": [240, 300]
     },
     {

@@ -7,6 +7,8 @@ services:
       - "5678:5678"
     env_file:
       - .env
+    environment:
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
     volumes:
       - n8n_accountantbot_data:/home/node/.n8n
       - ./workflows:/workflows

@@ -23,7 +23,7 @@ An n8n-based RPA prototype that turns Discord-submitted receipt photos into stru
 ```powershell
 git clone <this-repo>
 cd AccountantBot-SoftwareRoboticsExamProject
-copy .env.example .env
+copy .example.env .env
 ```
 
 Edit [.env](.env) and fill in:
@@ -33,13 +33,17 @@ Edit [.env](.env) and fill in:
 | `LLM_BASE_URL` | Base URL of an OpenAI-compatible API (e.g. `https://api.openai.com/v1`) |
 | `LLM_API_KEY` | API key for that endpoint |
 | `LLM_MODEL` | Model name. Must support image input (e.g. `gpt-4o-mini`, `claude-3-5-sonnet-latest`, `llama-3.2-90b-vision-preview`, `llava`) |
-| `DISCORD_LOG_WEBHOOK_URL` | Discord channel webhook URL for status messages |
-| `DISCORD_ACCOUNTANT_ROLE_ID` | Discord role ID to ping for review |
+| `DISCORD_BOT_TOKEN` | Bot token for the bundled Discord bot (from the Discord Developer Portal) |
+| `DISCORD_EXPENSE_CHANNEL_ID` | ID of the Discord channel the bot listens in for receipt uploads |
+| `DISCORD_LOG_WEBHOOK_URL` | Discord channel webhook URL n8n posts status messages to |
+| `N8N_WEBHOOK_URL` | Full URL of the n8n webhook the bot forwards receipts to (filled in after step 6 — see below) |
 | `GOOGLE_SHEETS_SPREADSHEET_ID` | The spreadsheet ID from the Google Sheets URL |
 | `GOOGLE_SHEETS_SHEET_NAME` | Tab name within the sheet (default `Expenses`) |
 | `MONGO_ROOT_USERNAME` / `MONGO_ROOT_PASSWORD` | Mongo admin credentials |
 | `MONGO_DATABASE` | Mongo database name (default `expense_rpa`) |
 | `MONGO_LOG_COLLECTION` | Mongo collection for logs (default `workflow_logs`) |
+
+`N8N_WEBHOOK_URL` is the only one you cannot fill in yet — leave it as the placeholder for now, you'll come back to it after activating the workflow.
 
 ### LLM endpoint examples
 
@@ -50,6 +54,14 @@ Edit [.env](.env) and fill in:
 | OpenRouter | `https://openrouter.ai/api/v1` | `anthropic/claude-3.5-sonnet` |
 | Anthropic | `https://api.anthropic.com/v1` | `claude-3-5-sonnet-latest` |
 | Ollama (local) | `http://host.docker.internal:11434/v1` | `llava` |
+
+### Discord bot setup
+
+1. In the [Discord Developer Portal](https://discord.com/developers/applications), create an application and add a **Bot** user. Copy the bot token into `DISCORD_BOT_TOKEN`.
+2. Under **Bot → Privileged Gateway Intents**, enable **Message Content Intent**.
+3. Invite the bot to your server with `bot` scope and at least the `Read Messages` + `Send Messages` + `Read Message History` + `Add Reactions` permissions.
+4. Right-click the channel that should receive receipt uploads → **Copy Channel ID** (requires Developer Mode in Discord settings) → paste into `DISCORD_EXPENSE_CHANNEL_ID`.
+5. In the same (or a different) channel, create a **Webhook** under channel settings and paste its URL into `DISCORD_LOG_WEBHOOK_URL`. n8n uses this to post Approved / Pending Review / Rejected status updates.
 
 ## 2. Prepare the Google Sheet
 
@@ -71,11 +83,12 @@ PaymentMethod | BusinessPurpose | Status | Details | Confidence | MessageId
 docker compose up -d
 ```
 
-This launches:
-- **n8n** at http://localhost:5678 (volume: `n8n_accountantbot_data`)
-- **MongoDB** at `localhost:27017` (volume: `mongo_accountantbot_data`)
+This launches three containers:
+- **n8n** at http://localhost:5678 (volume: `n8n_accountantbot_data`) — runs the workflow
+- **MongoDB** at `localhost:27017` (volume: `mongo_accountantbot_data`) — stores workflow logs
+- **expense-discord-bot** — Node.js bot in [discord-bot/](discord-bot/) that watches `DISCORD_EXPENSE_CHANNEL_ID` and forwards uploaded receipt images to `N8N_WEBHOOK_URL`
 
-The [workflows/](workflows/) folder is mounted at `/workflows` inside the n8n container.
+The [workflows/](workflows/) folder is mounted at `/workflows` inside the n8n container. The bot will crash-loop until you finish step 6 and set `N8N_WEBHOOK_URL` — that's expected on first run.
 
 ## 4. Import the workflow
 

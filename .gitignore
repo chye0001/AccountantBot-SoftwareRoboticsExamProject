@@ -1,3 +1,4 @@
 .env
 n8n_data/
 *.log
+**node_modules

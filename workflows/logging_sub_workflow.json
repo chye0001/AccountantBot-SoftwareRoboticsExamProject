@@ -13,7 +13,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const s = $json;\nreturn [{\n  json: {\n    label: s.label || 'info',\n    event: s.event || 'WorkflowEvent',\n    logTimestamp: new Date().toISOString(),\n    messageId: s.messageId || '',\n    discordUser: s.discordUser || '',\n    messageTimestamp: s.messageTimestamp || '',\n    details: s.details || '',\n    status: s.status || '',\n    receiptDetected: s.receiptDetected ?? null,\n    hasMissingFields: s.hasMissingFields ?? null,\n    missingFields: s.missingFields || [],\n    merchant: s.merchant || '',\n    receiptDate: s.receiptDate || '',\n    category: s.category || '',\n    currency: s.currency || '',\n    totalAmount: s.totalAmount || '',\n    confidence: s.confidence || '',\n    n8nStackTrace: s.n8nStackTrace || null,\n    logSource: 'n8n',\n    workflowName: 'Automated Expense Management - Discord Receipt RPA Prototype'\n  }\n}];"
+        "jsCode": "const s = $json;\nconst doc = {\n  label: s.label || 'info',\n  event: s.event || 'WorkflowEvent',\n  logTimestamp: new Date().toISOString(),\n  messageId: s.messageId || '',\n  discordUser: s.discordUser || '',\n  messageTimestamp: s.messageTimestamp || '',\n  details: s.details || ''\n};\nconst stack = s.N8NStackTrace || s.n8nStackTrace;\nif (s.label === 'error' && stack) {\n  doc.N8NStackTrace = String(stack);\n}\nreturn [{ json: doc }];"
       },
       "id": "log-prepare-1",
       "name": "Prepare Log Document",
@@ -25,7 +25,7 @@
       "parameters": {
         "operation": "insert",
         "collection": "logs",
-        "fields": "label,event,logTimestamp,messageId,discordUser,messageTimestamp,details,status,receiptDetected,hasMissingFields,missingFields,merchant,receiptDate,category,currency,totalAmount,confidence,n8nStackTrace,logSource,workflowName",
+        "fields": "label,event,logTimestamp,messageId,discordUser,messageTimestamp,details,N8NStackTrace",
         "options": {}
       },
       "id": "log-mongo-1",
@@ -121,7 +121,7 @@
       "parameters": {
         "operation": "insert",
         "collection": "logs",
-        "fields": "label,event,logTimestamp,messageId,discordUser,messageTimestamp,details,status,receiptDetected,hasMissingFields,missingFields,merchant,receiptDate,category,currency,totalAmount,confidence,n8nStackTrace,logSource,workflowName",
+        "fields": "label,event,logTimestamp,messageId,discordUser,messageTimestamp,details,N8NStackTrace",
         "options": {}
       },
       "id": "log-mongo-retry-1",
@@ -183,7 +183,7 @@
     },
     {
       "parameters": {
-        "content": "Logging Subworkflow\n\nAccepts any log payload from the main workflow via Execute Workflow node.\n\nRetry logic:\n- First attempt: immediate\n- Retry 1: wait 3s\n- Retry 2: wait 6s\n- Retry 3: wait 9s\n- All retries failed: notify accountant role in Discord\n\nAll logs go to MongoDB collection: logs\n\nInput fields expected:\nlabel, event, messageId, discordUser,\nmessageTimestamp, details, status,\nreceiptDetected, hasMissingFields,\nmissingFields, merchant, receiptDate,\ncategory, currency, totalAmount,\nconfidence, n8nStackTrace (errors only)",
+        "content": "Logging Subworkflow\n\nAccepts a log payload from the main workflow via Execute Workflow node.\n\nRetry logic:\n- First attempt: immediate\n- Retry 1: wait 3s\n- Retry 2: wait 6s\n- Retry 3: wait 9s\n- All retries failed: notify accountant role in Discord\n\nAll logs go to MongoDB collection: logs\n\nDocument shape written to Mongo:\n{\n  label:            'info' | 'warning' | 'error',\n  event:            <event name from taxonomy>,\n  logTimestamp:     ISO8601 (set by this subworkflow),\n  messageId:        Discord message id,\n  discordUser:      e.g. 'paulkrus#1234',\n  messageTimestamp: ISO8601 from Discord,\n  details:          human-readable description,\n  N8NStackTrace:    only present when label === 'error'\n}\n\nInput field names accepted from callers:\nlabel, event, messageId, discordUser,\nmessageTimestamp, details,\nn8nStackTrace OR N8NStackTrace (errors only).",
         "height": 400,
         "width": 440,
         "color": 7

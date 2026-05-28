@@ -165,7 +165,7 @@
         "url": "={{$env.DISCORD_LOG_WEBHOOK_URL}}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"content\": \"⛔ **AccountantBot — Log Write Failed**\\nFailed to write log to MongoDB after 3 retries.\\n**Event:** \" + $json.event + \"\\n**User:** \" + $json.discordUser + \"\\n**Details:** \" + $json.details + \"\\n<@&\" + $env.DISCORD_ACCOUNTANT_ROLE_ID + \"> please check the database connection.\"\n}",
+        "jsonBody": "=({\n  \"content\": \"⛔ **AccountantBot — Log Write Failed**\\nFailed to write log to MongoDB after 3 retries.\\n**Event:** \" + $json.event + \"\\n**User:** \" + $json.discordUser + \"\\n**Details:** \" + $json.details + \"\\n<@&\" + $env.DISCORD_ACCOUNTANT_ROLE_ID + \"> please check the database connection.\"\n})",
         "options": {}
       },
       "id": "log-discord-fail-1",

@@ -25,7 +25,7 @@ const mockWebhookUrl =
     N8N_MOCK_WEBHOOK_URL ||
     N8N_WEBHOOK_URL.replace("expense-submission", "expense-submission-mock");
 
-const TEST_SCENARIOS = ["approved", "pending", "rejected", "unavailable"];
+const TEST_SCENARIOS = ["approved", "pending", "rejected", "unavailable", "sheetfail", "sheetfail-pending"];
 
 const client = new Client({
     intents: [
@@ -57,9 +57,9 @@ client.on("messageCreate", async (message) => {
         // Only listen to the expense channel
         if (message.channelId !== DISCORD_EXPENSE_CHANNEL_ID) return;
 
-        // TEST mode: "TEST approved" / "TEST pending" / "TEST rejected" / "TEST unavailable"
+        // TEST mode: "TEST approved" / "TEST pending" / "TEST rejected" / "TEST unavailable" / "TEST sheetfail" / "TEST sheetfail-pending"
         // No image required — sends a no-image payload to the mock n8n webhook.
-        const testMatch = message.content?.match(/^TEST\s+(\w+)/);
+        const testMatch = message.content?.match(/^TEST\s+([\w-]+)/);
         if (testMatch) {
             const scenario = testMatch[1].toLowerCase();
 
@@ -110,7 +110,7 @@ client.on("messageCreate", async (message) => {
 
         if (!attachment) {
             await message.reply(
-                "Please attach a receipt image — or send `TEST approved` / `TEST pending` / `TEST rejected` / `TEST unavailable` to simulate via the mock workflow."
+                "Please attach a receipt image — or send `TEST approved` / `TEST pending` / `TEST rejected` / `TEST unavailable` / `TEST sheetfail` / `TEST sheetfail-pending` to simulate via the mock workflow."
             );
             return;
         }

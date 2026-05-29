@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "content": "MOCK AI variant of the main workflow.\n\nThe LLM HTTP call has been replaced with a Code node that returns a hardcoded, valid receipt — so this workflow exercises only the Google Sheets + Discord + Mongo integration path, with no LLM API key, billing, or network dependency required.\n\nWebhook path is /webhook/expense-submission-mock\n(so it does not collide with the real workflow).\n\nTo trigger different branches, override fields in the Discord bot's POST body:\n  mockScenario: \"approved\" (default) | \"pending\" | \"rejected\"\n\nExpected POST body from your Discord bot:\n{\n  \"discordUser\": \"Paul Krus\",\n  \"discordUserId\": \"123456789\",\n  \"messageTimestamp\": \"2026-05-25T14:14:34.000Z\",\n  \"submittedDate\": \"2026-05-25\",\n  \"messageId\": \"discord-message-id\",\n  \"channelId\": \"discord-channel-id\",\n  \"imageBase64\": \"<can be empty in mock mode>\",\n  \"mimeType\": \"image/jpeg\",\n  \"mockScenario\": \"approved\"\n}",
+        "content": "MOCK AI variant of the main workflow.\n\nThe LLM HTTP call has been replaced with a Code node that returns a hardcoded, valid receipt — so this workflow exercises only the Google Sheets + Discord + Mongo integration path, with no LLM API key, billing, or network dependency required.\n\nWebhook path is /webhook/expense-submission-mock\n(so it does not collide with the real workflow).\n\nTo trigger different branches, override fields in the Discord bot's POST body:\n  mockScenario: \"approved\" (default) | \"pending\" | \"rejected\" | \"unavailable\" | \"sheetfail\" | \"sheetfail-pending\"\n\nExpected POST body from your Discord bot:\n{\n  \"discordUser\": \"Paul Krus\",\n  \"discordUserId\": \"123456789\",\n  \"messageTimestamp\": \"2026-05-25T14:14:34.000Z\",\n  \"submittedDate\": \"2026-05-25\",\n  \"messageId\": \"discord-message-id\",\n  \"channelId\": \"discord-channel-id\",\n  \"imageBase64\": \"<can be empty in mock mode>\",\n  \"mimeType\": \"image/jpeg\",\n  \"mockScenario\": \"approved\"\n}",
         "height": 420,
         "width": 540,
         "color": 4
@@ -141,7 +141,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\n// MOCK AI EXTRACTION\n// Returns a response shaped exactly like an OpenAI-compatible /chat/completions reply\n// so that the downstream \"Parse AI Response and Validate\" node works unchanged.\n//\n// The scenario is read from the original webhook body (via Normalize Discord Input):\n//   approved (default) -> full valid receipt -> goes to Sheets Append (Approved)\n//   pending            -> missing required fields -> goes to Sheets Append (Pending Review)\n//   rejected           -> ReceiptDetected: false -> goes to No Receipt branch (no sheet write)\n//   unavailable        -> simulates the LLM API being down -> goes to AI Unavailable branch\n\nconst input = $('Normalize Discord Input').first().json;\nconst scenario = (input.mockScenario || 'approved').toLowerCase();\n\nif (scenario === 'unavailable') {\n  // Mimic the shape the Parse node interprets as apiUnavailable\n  return [{ json: { error: { message: '[MOCK] LLM endpoint unavailable' } } }];\n}\n\nlet receipt;\n\nif (scenario === 'rejected') {\n  receipt = {\n    ReceiptDetected: false,\n    Merchant: null,\n    ReceiptDate: null,\n    Currency: null,\n    TotalAmount: null,\n    VATAmount: null,\n    VATIncluded: null,\n    Category: null,\n    PaymentMethod: null,\n    ReceiptId: null,\n    BusinessPurpose: null,\n    Confidence: 0.0,\n    Notes: '[MOCK] Image is not a receipt.'\n  };\n} else if (scenario === 'pending') {\n  // Valid receipt but with missing required fields (Currency + VATAmount blank)\n  receipt = {\n    ReceiptDetected: true,\n    Merchant: 'Mock Cafe',\n    ReceiptDate: '28-05-2026',\n    Currency: null,\n    TotalAmount: 89.0,\n    VATAmount: null,\n    VATIncluded: 'No',\n    Category: 'Food / Meals',\n    PaymentMethod: 'Company Card',\n    ReceiptId: 'MOCK-PENDING-001',\n    BusinessPurpose: 'Mock pending review scenario',\n    Confidence: 0.42,\n    Notes: '[MOCK] Some required fields are intentionally missing.'\n  };\n} else {\n  // approved (default) — full valid receipt\n  receipt = {\n    ReceiptDetected: true,\n    Merchant: 'Mock Coffee Roasters',\n    ReceiptDate: '28-05-2026',\n    Currency: 'DKK',\n    TotalAmount: 125.50,\n    VATAmount: 25.10,\n    VATIncluded: 'Yes',\n    Category: 'Food / Meals',\n    PaymentMethod: 'Company Card',\n    ReceiptId: 'MOCK-APPROVED-001',\n    BusinessPurpose: 'Mock approved scenario — Google Sheets integration test',\n    Confidence: 0.99,\n    Notes: '[MOCK] Hardcoded valid receipt, no LLM was called.'\n  };\n}\n\n// Shape matches OpenAI/Anthropic-compatible /chat/completions response\nreturn [{\n  json: {\n    id: 'mock-cmpl-' + Date.now(),\n    object: 'chat.completion',\n    model: 'mock-vision-model',\n    choices: [\n      {\n        index: 0,\n        finish_reason: 'stop',\n        message: {\n          role: 'assistant',\n          content: JSON.stringify(receipt)\n        }\n      }\n    ],\n    usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }\n  }\n}];\n"
+        "jsCode": "\n// MOCK AI EXTRACTION\n// Returns a response shaped exactly like an OpenAI-compatible /chat/completions reply\n// so that the downstream \"Parse AI Response and Validate\" node works unchanged.\n//\n// The scenario is read from the original webhook body (via Normalize Discord Input):\n//   approved (default) -> full valid receipt -> goes to Sheets Append (Approved)\n//   pending            -> missing required fields -> goes to Sheets Append (Pending Review)\n//   rejected           -> ReceiptDetected: false -> goes to No Receipt branch (no sheet write)\n//   unavailable        -> simulates the LLM API being down -> goes to AI Unavailable branch\n//   sheetfail          -> valid receipt (like approved), but the real Sheets Append is bypassed\n//                         by a downstream mock IF/Code so the SheetAppendFailed branch fires\n//                         (hits the Approved fail-IF on the no-missing-fields path)\n//   sheetfail-pending  -> receipt with missing required fields (like pending), Sheets Append\n//                         is bypassed by the same downstream mock IF/Code so the\n//                         SheetAppendFailed branch on the Pending path fires\n\nconst input = $('Normalize Discord Input').first().json;\nconst scenario = (input.mockScenario || 'approved').toLowerCase();\n\nif (scenario === 'unavailable') {\n  // Mimic the shape the Parse node interprets as apiUnavailable\n  return [{ json: { error: { message: '[MOCK] LLM endpoint unavailable' } } }];\n}\n\nlet receipt;\n\nif (scenario === 'rejected') {\n  receipt = {\n    ReceiptDetected: false,\n    Merchant: null,\n    ReceiptDate: null,\n    Currency: null,\n    TotalAmount: null,\n    VATAmount: null,\n    VATIncluded: null,\n    Category: null,\n    PaymentMethod: null,\n    ReceiptId: null,\n    BusinessPurpose: null,\n    Confidence: 0.0,\n    Notes: '[MOCK] Image is not a receipt.'\n  };\n} else if (scenario === 'pending') {\n  // Valid receipt but with missing required fields (Currency + VATAmount blank)\n  receipt = {\n    ReceiptDetected: true,\n    Merchant: 'Mock Cafe',\n    ReceiptDate: '28-05-2026',\n    Currency: null,\n    TotalAmount: 89.0,\n    VATAmount: null,\n    VATIncluded: 'No',\n    Category: 'Food / Meals',\n    PaymentMethod: 'Company Card',\n    ReceiptId: 'MOCK-PENDING-001',\n    BusinessPurpose: 'Mock pending review scenario',\n    Confidence: 0.42,\n    Notes: '[MOCK] Some required fields are intentionally missing.'\n  };\n} else if (scenario === 'sheetfail-pending') {\n  // missing required fields (Currency + VATAmount) so it routes to the Pending\n  // path; the downstream mock IF/Code then injects the Sheets-write failure.\n  receipt = {\n    ReceiptDetected: true,\n    Merchant: 'Mock Sheet-Fail Cafe (Pending)',\n    ReceiptDate: '28-05-2026',\n    Currency: null,\n    TotalAmount: 75.50,\n    VATAmount: null,\n    VATIncluded: 'No',\n    Category: 'Food / Meals',\n    PaymentMethod: 'Company Card',\n    ReceiptId: 'MOCK-SHEETFAIL-PENDING-001',\n    BusinessPurpose: 'Mock sheet-write failure on Pending path',\n    Confidence: 0.42,\n    Notes: '[MOCK] Pending-shaped receipt — Sheets Append will be mocked to fail on the Pending path.'\n  };\n} else if (scenario === 'sheetfail') {\n  // valid receipt — the failure is injected downstream by a mock IF/Code\n  // node so the real Google Sheets call is bypassed entirely.\n  receipt = {\n    ReceiptDetected: true,\n    Merchant: 'Mock Sheet-Fail Diner',\n    ReceiptDate: '28-05-2026',\n    Currency: 'DKK',\n    TotalAmount: 99.00,\n    VATAmount: 19.80,\n    VATIncluded: 'Yes',\n    Category: 'Food / Meals',\n    PaymentMethod: 'Company Card',\n    ReceiptId: 'MOCK-SHEETFAIL-001',\n    BusinessPurpose: 'Mock sheet-write failure scenario',\n    Confidence: 0.95,\n    Notes: '[MOCK] Valid receipt — Sheets Append will be mocked to fail downstream.'\n  };\n} else {\n  // approved (default) — full valid receipt\n  receipt = {\n    ReceiptDetected: true,\n    Merchant: 'Mock Coffee Roasters',\n    ReceiptDate: '28-05-2026',\n    Currency: 'DKK',\n    TotalAmount: 125.50,\n    VATAmount: 25.10,\n    VATIncluded: 'Yes',\n    Category: 'Food / Meals',\n    PaymentMethod: 'Company Card',\n    ReceiptId: 'MOCK-APPROVED-001',\n    BusinessPurpose: 'Mock approved scenario — Google Sheets integration test',\n    Confidence: 0.99,\n    Notes: '[MOCK] Hardcoded valid receipt, no LLM was called.'\n  };\n}\n\n// Shape matches OpenAI/Anthropic-compatible /chat/completions response\nreturn [{\n  json: {\n    id: 'mock-cmpl-' + Date.now(),\n    object: 'chat.completion',\n    model: 'mock-vision-model',\n    choices: [\n      {\n        index: 0,\n        finish_reason: 'stop',\n        message: {\n          role: 'assistant',\n          content: JSON.stringify(receipt)\n        }\n      }\n    ],\n    usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }\n  }\n}];\n"
       },
       "id": "d0b0e2b2-877d-4cdc-8c38-f77bb750ac00",
       "name": "Mock AI Extraction",
@@ -154,7 +154,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nconst original = $('Normalize Discord Input').first().json;\nconst response = $json;\n\nfunction safeString(value) {\n  if (value === null || value === undefined) return '';\n  return String(value).trim();\n}\n\nfunction parseLlmJson(resp) {\n  if (resp.error || resp.message?.includes?.('Error')) {\n    return { apiUnavailable: true, invalidJson: false, parseError: null, aiRawText: '', extracted: null };\n  }\n  const text =\n    resp.choices?.[0]?.message?.content ??\n    resp.body?.choices?.[0]?.message?.content ??\n    resp.data?.choices?.[0]?.message?.content ??\n    '';\n  if (!text) {\n    return { apiUnavailable: true, invalidJson: false, parseError: null, aiRawText: '', extracted: null };\n  }\n  try {\n    const cleaned = text.replace(/^```json\\s*/i, '').replace(/```$/i, '').trim();\n    return { apiUnavailable: false, invalidJson: false, parseError: null, aiRawText: text, extracted: JSON.parse(cleaned) };\n  } catch (error) {\n    return { apiUnavailable: false, invalidJson: true, parseError: error.message, aiRawText: text, extracted: { ReceiptDetected: false } };\n  }\n}\n\nconst parsed = parseLlmJson(response);\n\nif (parsed.apiUnavailable) {\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: true,\n      receiptDetected: false,\n      logEvent: 'AIUnavailable',\n      logLabel: 'error',\n      status: 'Rejected',\n      details: '[MOCK] LLM endpoint unreachable or returned no usable response.',\n      discordMessage: `⚠️ <@${original.discordUserId}> [MOCK] your receipt could not be processed because the AI service is unavailable. Please try again later.`\n    }\n  }];\n}\n\nif (parsed.invalidJson) {\n  const rawHead = (parsed.aiRawText || '').slice(0, 200).replace(/\\s+/g, ' ');\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: false,\n      receiptDetected: false,\n      logEvent: 'AIResponseInvalid',\n      logLabel: 'error',\n      status: 'Rejected',\n      details: `[MOCK] AI returned non-JSON output: ${parsed.parseError}. Raw head: ${rawHead}`,\n      aiRawText: parsed.aiRawText,\n      discordMessage: `❌ <@${original.discordUserId}> [MOCK] the AI response was unreadable. Please re-upload the receipt.`\n    }\n  }];\n}\n\nconst ai = parsed.extracted || {};\nconst receiptDetected = ai.ReceiptDetected === true;\n\nif (!receiptDetected) {\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: false,\n      receiptDetected: false,\n      logEvent: 'NoReceiptDetected',\n      logLabel: 'warning',\n      status: 'Rejected',\n      details: `[MOCK] Image classified as non-receipt. AI notes: ${safeString(ai.Notes) || 'no notes provided'}`,\n      aiRawText: parsed.aiRawText,\n      discordMessage: `❌ <@${original.discordUserId}> [MOCK] no valid receipt was detected. Please send a new image of the receipt.`\n    }\n  }];\n}\n\nconst merged = {\n  discordUser: original.discordUser,\n  discordUserId: original.discordUserId,\n  messageTimestamp: original.messageTimestamp,\n  submittedDate: original.submittedDate,\n  messageId: original.messageId,\n  channelId: original.channelId,\n  merchant: safeString(ai.Merchant),\n  receiptDate: safeString(ai.ReceiptDate),\n  currency: safeString(ai.Currency),\n  totalAmount: ai.TotalAmount ?? '',\n  vatAmount: ai.VATAmount ?? '',\n  vatIncluded: safeString(ai.VATIncluded),\n  category: safeString(ai.Category),\n  paymentMethod: safeString(ai.PaymentMethod),\n  receiptId: safeString(ai.ReceiptId),\n  businessPurpose: safeString(ai.BusinessPurpose),\n  confidence: ai.Confidence ?? '',\n  notes: safeString(ai.Notes)\n};\n\nconst requiredFields = [\n  ['Merchant', merged.merchant],\n  ['Receipt Date', merged.receiptDate],\n  ['Currency', merged.currency],\n  ['Total Amount', merged.totalAmount],\n  ['VAT Amount', merged.vatAmount],\n  ['Category', merged.category]\n];\n\nconst missingFields = requiredFields\n  .filter(([_, value]) => value === '' || value === null || value === undefined)\n  .map(([field]) => field);\n\nconst hasMissingFields = missingFields.length > 0;\nconst status = hasMissingFields ? 'Pending Review' : 'Approved by Bot';\n\nconst aiSummary = `Merchant: ${merged.merchant || '(blank)'}, Total: ${merged.totalAmount === '' ? '(blank)' : merged.totalAmount} ${merged.currency || ''}, Date: ${merged.receiptDate || '(blank)'}, Confidence: ${merged.confidence === '' ? '(blank)' : merged.confidence}`;\nconst aiResponseDetails = `[MOCK] Receipt parsed — ${aiSummary}`;\nconst missingDetails = `[MOCK] Routed to Pending Review. Missing fields: ${missingFields.join(', ')}`;\n\nconst discordMessage = hasMissingFields\n  ? `🟡 <@${merged.discordUserId}> [MOCK] your receipt was detected, but it is missing required data.\\n\\n**Status:** Pending Review\\n**Missing:** ${missingFields.join(', ')}\\n\\nPlease re-upload the receipt with the missing information.`\n  : `✅ <@${merged.discordUserId}> [MOCK] your receipt was processed successfully.\\n\\n**Status:** Approved by Bot\\n**Merchant:** ${merged.merchant}\\n**Amount:** ${merged.totalAmount} ${merged.currency}\\n**Category:** ${merged.category}`;\n\nreturn [{\n  json: {\n    ...merged,\n    apiUnavailable: false,\n    receiptDetected: true,\n    hasMissingFields,\n    missingFields,\n    status,\n    details: aiResponseDetails,\n    missingDetails,\n    aiRawText: parsed.aiRawText,\n    logEvent: 'AIResponseReceived',\n    logLabel: 'info',\n    discordMessage\n  }\n}];\n"
+        "jsCode": "\nconst original = $('Normalize Discord Input').first().json;\nconst response = $json;\n\nfunction safeString(value) {\n  if (value === null || value === undefined) return '';\n  return String(value).trim();\n}\n\nfunction parseLlmJson(resp) {\n  if (resp.error || resp.message?.includes?.('Error')) {\n    return { apiUnavailable: true, invalidJson: false, parseError: null, aiRawText: '', extracted: null };\n  }\n  const text =\n    resp.choices?.[0]?.message?.content ??\n    resp.body?.choices?.[0]?.message?.content ??\n    resp.data?.choices?.[0]?.message?.content ??\n    '';\n  if (!text) {\n    return { apiUnavailable: true, invalidJson: false, parseError: null, aiRawText: '', extracted: null };\n  }\n  try {\n    const cleaned = text.replace(/^```json\\s*/i, '').replace(/```$/i, '').trim();\n    return { apiUnavailable: false, invalidJson: false, parseError: null, aiRawText: text, extracted: JSON.parse(cleaned) };\n  } catch (error) {\n    return { apiUnavailable: false, invalidJson: true, parseError: error.message, aiRawText: text, extracted: { ReceiptDetected: false } };\n  }\n}\n\nconst parsed = parseLlmJson(response);\n\nif (parsed.apiUnavailable) {\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: true,\n      receiptDetected: false,\n      logEvent: 'AIUnavailable',\n      logLabel: 'error',\n      status: 'Rejected',\n      details: '[MOCK] LLM endpoint unreachable or returned no usable response.',\n      discordMessage: `⚠️ <@${original.discordUserId}> [MOCK] your receipt could not be processed because the AI service is unavailable. Please try again later.`\n    }\n  }];\n}\n\nif (parsed.invalidJson) {\n  const rawHead = (parsed.aiRawText || '').slice(0, 200).replace(/\\s+/g, ' ');\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: false,\n      receiptDetected: false,\n      logEvent: 'AIResponseInvalid',\n      logLabel: 'error',\n      status: 'Rejected',\n      details: `[MOCK] AI returned non-JSON output: ${parsed.parseError}. Raw head: ${rawHead}`,\n      aiRawText: parsed.aiRawText,\n      discordMessage: `❌ <@${original.discordUserId}> [MOCK] the AI response was unreadable. Please re-upload the receipt.`\n    }\n  }];\n}\n\nconst ai = parsed.extracted || {};\nconst receiptDetected = ai.ReceiptDetected === true;\n\nif (!receiptDetected) {\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: false,\n      receiptDetected: false,\n      logEvent: 'NoReceiptDetected',\n      logLabel: 'warning',\n      status: 'Rejected',\n      details: `[MOCK] Image classified as non-receipt. AI notes: ${safeString(ai.Notes) || 'no notes provided'}`,\n      aiRawText: parsed.aiRawText,\n      discordMessage: `❌ <@${original.discordUserId}> [MOCK] no valid receipt was detected. Please send a new image of the receipt.`\n    }\n  }];\n}\n\nconst merged = {\n  discordUser: original.discordUser,\n  discordUserId: original.discordUserId,\n  messageTimestamp: original.messageTimestamp,\n  submittedDate: original.submittedDate,\n  messageId: original.messageId,\n  channelId: original.channelId,\n  merchant: safeString(ai.Merchant),\n  receiptDate: safeString(ai.ReceiptDate),\n  currency: safeString(ai.Currency),\n  totalAmount: ai.TotalAmount ?? '',\n  vatAmount: ai.VATAmount ?? '',\n  vatIncluded: safeString(ai.VATIncluded),\n  category: safeString(ai.Category),\n  paymentMethod: safeString(ai.PaymentMethod),\n  receiptId: safeString(ai.ReceiptId),\n  businessPurpose: safeString(ai.BusinessPurpose),\n  confidence: ai.Confidence ?? '',\n  notes: safeString(ai.Notes)\n};\n\nconst requiredFields = [\n  ['Merchant', merged.merchant],\n  ['Receipt Date', merged.receiptDate],\n  ['Currency', merged.currency],\n  ['Total Amount', merged.totalAmount],\n  ['VAT Amount', merged.vatAmount],\n  ['Category', merged.category],\n  ['Payment Method', merged.paymentMethod]\n];\n\nconst missingFields = requiredFields\n  .filter(([_, value]) => value === '' || value === null || value === undefined)\n  .map(([field]) => field);\n\nconst hasMissingFields = missingFields.length > 0;\nconst status = hasMissingFields ? 'Pending Review' : 'Approved by Bot';\n\nconst aiSummary = `Merchant: ${merged.merchant || '(blank)'}, Total: ${merged.totalAmount === '' ? '(blank)' : merged.totalAmount} ${merged.currency || ''}, Date: ${merged.receiptDate || '(blank)'}, Confidence: ${merged.confidence === '' ? '(blank)' : merged.confidence}`;\nconst aiResponseDetails = `[MOCK] Receipt parsed — ${aiSummary}`;\nconst missingDetails = `[MOCK] Routed to Pending Review. Missing fields: ${missingFields.join(', ')}`;\n\nconst discordMessage = hasMissingFields\n  ? `🟡 <@${merged.discordUserId}> [MOCK] your receipt was detected, but it is missing required data.\\n\\n**Status:** Pending Review\\n**Missing:** ${missingFields.join(', ')}\\n\\nPlease re-upload the receipt with the missing information.`\n  : `✅ <@${merged.discordUserId}> [MOCK] your receipt was processed successfully.\\n\\n**Status:** Approved by Bot\\n**Merchant:** ${merged.merchant}\\n**Amount:** ${merged.totalAmount} ${merged.currency}\\n**Category:** ${merged.category}`;\n\nreturn [{\n  json: {\n    ...merged,\n    apiUnavailable: false,\n    receiptDetected: true,\n    hasMissingFields,\n    missingFields,\n    status,\n    details: aiResponseDetails,\n    missingDetails,\n    aiRawText: parsed.aiRawText,\n    logEvent: 'AIResponseReceived',\n    logLabel: 'info',\n    discordMessage\n  }\n}];\n"
       },
       "id": "7624a547-0bf0-40e6-9d98-b9c14dd7806b",
       "name": "Parse AI Response and Validate",
@@ -1224,7 +1224,7 @@
     },
     {
       "parameters": {
-        "content": "Mock-mode notes:\n\nNo LLM env vars are needed for this workflow (LLM_BASE_URL / LLM_API_KEY / LLM_MODEL are unused).\n\nStill required:\n  GOOGLE_SHEETS_SPREADSHEET_ID\n  DISCORD_LOG_WEBHOOK_URL\n  MongoDB credential in n8n: mongodb://admin:password@mongo:27017/expense_rpa?authSource=admin\n  Google Sheets credential (reattach 'Google Sheets OAuth2' on both Sheets Append nodes)\n\nSheet columns (Receipts tab — Sheets Append nodes map by header name):\nEmployee Name | Submitted Date | Message Timestamp | Receipt Date | Merchant\n| Expense Category | Payment Method | Currency\n| Total Amount | VAT Included | VAT Amount | Status\n\nLog event taxonomy (see Mongo `logs` collection):\n  SubmissionReceived    (info)\n  AIExtractionRequested (info)\n  AIUnavailable         (error)\n  AIResponseInvalid     (error)\n  AIResponseReceived    (info)\n  NoReceiptDetected     (warning)\n  MissingRequiredFields (warning)\n  SheetAppendSucceeded  (info)\n  SheetAppendFailed     (error)\n  WorkflowCompleted     (info)\n\nDocument shape per log (enforced by the logging subworkflow):\n  label, event, logTimestamp, messageId,\n  discordUser, messageTimestamp, details,\n  N8NStackTrace (only on errors)\n\nIMPORTANT: Import the Logging Subworkflow first,\nthen replace Pg6WVXXoo0lun2yr in every Log - * node\nwith its workflow ID from the n8n URL.\n\nQuick smoke test (approved path):\ncurl -X POST http://localhost:5678/webhook/expense-submission-mock \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"discordUser\":\"Test\",\"discordUserId\":\"1\",\"messageTimestamp\":\"2026-05-28T10:00:00.000Z\",\"submittedDate\":\"2026-05-28\",\"mockScenario\":\"approved\"}'",
+        "content": "Mock-mode notes:\n\nNo LLM env vars are needed for this workflow (LLM_BASE_URL / LLM_API_KEY / LLM_MODEL are unused).\n\nStill required:\n  GOOGLE_SHEETS_SPREADSHEET_ID\n  DISCORD_LOG_WEBHOOK_URL\n  MongoDB credential in n8n: mongodb://admin:password@mongo:27017/expense_rpa?authSource=admin\n  Google Sheets credential (reattach 'Google Sheets OAuth2' on both Sheets Append nodes)\n\nSheet columns (Receipts tab — Sheets Append nodes map by header name):\nEmployee Name | Submitted Date | Message Timestamp | Receipt Date | Merchant\n| Expense Category | Payment Method | Currency\n| Total Amount | VAT Included | VAT Amount | Status\n\nLog event taxonomy (see Mongo `logs` collection):\n  SubmissionReceived    (info)\n  AIExtractionRequested (info)\n  AIUnavailable         (error)\n  AIResponseInvalid     (error)\n  AIResponseReceived    (info)\n  NoReceiptDetected     (warning)\n  MissingRequiredFields (warning)\n  SheetAppendSucceeded  (info)\n  SheetAppendFailed     (error)\n  WorkflowCompleted     (info)\n\nDocument shape per log (enforced by the logging subworkflow):\n  label, event, logTimestamp, messageId,\n  discordUser, messageTimestamp, details,\n  N8NStackTrace (only on errors)\n\nIMPORTANT: Import the Logging Subworkflow first,\nthen replace Pg6WVXXoo0lun2yr in every Log - * node\nwith its workflow ID from the n8n URL.\n\nQuick smoke test (approved path):\ncurl -X POST http://localhost:5678/webhook/expense-submission-mock \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"discordUser\":\"Test\",\"discordUserId\":\"1\",\"messageTimestamp\":\"2026-05-28T10:00:00.000Z\",\"submittedDate\":\"2026-05-28\",\"mockScenario\":\"approved\"}'\n\nSheet-write failure test — Approved path (no real Sheets call made):\ncurl -X POST http://localhost:5678/webhook/expense-submission-mock \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"discordUser\":\"Test\",\"discordUserId\":\"1\",\"messageTimestamp\":\"2026-05-28T10:00:00.000Z\",\"submittedDate\":\"2026-05-28\",\"mockScenario\":\"sheetfail\"}'\n\nSheet-write failure test — Pending path (no real Sheets call made):\ncurl -X POST http://localhost:5678/webhook/expense-submission-mock \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"discordUser\":\"Test\",\"discordUserId\":\"1\",\"messageTimestamp\":\"2026-05-28T10:00:00.000Z\",\"submittedDate\":\"2026-05-28\",\"mockScenario\":\"sheetfail-pending\"}'",
         "height": 460,
         "width": 560,
         "color": 5
@@ -1377,27 +1377,28 @@
     },
     {
       "parameters": {
-        "content": "={{ '<@' + $('Parse AI Response and Validate').item.json.discordUserId + '> ⚠️ [MOCK] Your receipt was processed but could not be saved to the expense sheet. Please contact the accountant.' }}",
-        "channelId": {
-          "__rl": true,
-          "value": "PLACEHOLDER_DISCORD_CHANNEL_ID",
-          "mode": "id"
-        }
+        "method": "POST",
+        "url": "={{$env.DISCORD_LOG_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ '<@' + $('Parse AI Response and Validate').item.json.discordUserId + '> ⚠️ [MOCK] Your receipt was processed but could not be saved to the expense sheet. Please contact the accountant.' }}"
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "discord-sheets-pending-error",
       "name": "Discord Notify - SheetWriteFailed (Pending)",
-      "type": "n8n-nodes-base.discord",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         2560,
         460
-      ],
-      "credentials": {
-        "discordBotApi": {
-          "id": "PLACEHOLDER_DISCORD_CREDENTIAL_ID",
-          "name": "Discord Bot AccountantBot"
-        }
-      }
+      ]
     },
     {
       "parameters": {
@@ -1538,27 +1539,28 @@
     },
     {
       "parameters": {
-        "content": "={{ '<@' + $('Parse AI Response and Validate').item.json.discordUserId + '> ⚠️ [MOCK] Your receipt was processed but could not be saved to the expense sheet. Please contact the accountant.' }}",
-        "channelId": {
-          "__rl": true,
-          "value": "PLACEHOLDER_DISCORD_CHANNEL_ID",
-          "mode": "id"
-        }
+        "method": "POST",
+        "url": "={{$env.DISCORD_LOG_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ '<@' + $('Parse AI Response and Validate').item.json.discordUserId + '> ⚠️ [MOCK] Your receipt was processed but could not be saved to the expense sheet. Please contact the accountant.' }}"
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "discord-sheets-approved-error",
       "name": "Discord Notify - SheetWriteFailed (Approved)",
-      "type": "n8n-nodes-base.discord",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         2560,
         760
-      ],
-      "credentials": {
-        "discordBotApi": {
-          "id": "PLACEHOLDER_DISCORD_CREDENTIAL_ID",
-          "name": "Discord Bot AccountantBot"
-        }
-      }
+      ]
     },
     {
       "parameters": {
@@ -2117,6 +2119,98 @@
         2670,
         940
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "mock-sheets-fail-pending",
+              "leftValue": "={{ $('Normalize Discord Input').item.json.mockScenario }}",
+              "rightValue": "sheetfail",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith",
+                "name": "filter.operator.startsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-mock-sheets-fail-pending",
+      "name": "IF - Mock Force Sheets Failure? (Pending)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2020,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// MOCK: emit a payload with $json.error set so the downstream\n// \"Sheets Write Failed? (Pending)\" IF routes to the SheetAppendFailed branch.\n// No real Google Sheets call happens on this path.\nreturn [{\n  json: {\n    error: '[MOCK] Forced Google Sheets write failure for testing.'\n  }\n}];\n"
+      },
+      "id": "code-mock-sheets-error-pending",
+      "name": "Emit Mock Sheet Error (Pending)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2020,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "mock-sheets-fail-approved",
+              "leftValue": "={{ $('Normalize Discord Input').item.json.mockScenario }}",
+              "rightValue": "sheetfail",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith",
+                "name": "filter.operator.startsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-mock-sheets-fail-approved",
+      "name": "IF - Mock Force Sheets Failure? (Approved)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2020,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// MOCK: emit a payload with $json.error set so the downstream\n// \"Sheets Write Failed? (Approved)\" IF routes to the SheetAppendFailed branch.\n// No real Google Sheets call happens on this path.\nreturn [{\n  json: {\n    error: '[MOCK] Forced Google Sheets write failure for testing.'\n  }\n}];\n"
+      },
+      "id": "code-mock-sheets-error-approved",
+      "name": "Emit Mock Sheet Error (Approved)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2020,
+        1120
+      ]
     }
   ],
   "pinData": {},
@@ -2299,7 +2393,7 @@
         ],
         [
           {
-            "node": "Sheets Append - Approved",
+            "node": "IF - Mock Force Sheets Failure? (Approved)",
             "type": "main",
             "index": 0
           }
@@ -2310,7 +2404,7 @@
       "main": [
         [
           {
-            "node": "Sheets Append - Pending Review",
+            "node": "IF - Mock Force Sheets Failure? (Pending)",
             "type": "main",
             "index": 0
           }
@@ -2457,6 +2551,64 @@
     "Discord Notify - SheetWriteFailed (Approved)": {
       "main": [
         []
+      ]
+    },
+    "IF - Mock Force Sheets Failure? (Pending)": {
+      "main": [
+        [
+          {
+            "node": "Emit Mock Sheet Error (Pending)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheets Append - Pending Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit Mock Sheet Error (Pending)": {
+      "main": [
+        [
+          {
+            "node": "Sheets Write Failed? (Pending)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Mock Force Sheets Failure? (Approved)": {
+      "main": [
+        [
+          {
+            "node": "Emit Mock Sheet Error (Approved)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheets Append - Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit Mock Sheet Error (Approved)": {
+      "main": [
+        [
+          {
+            "node": "Sheets Write Failed? (Approved)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },

@@ -48,47 +48,80 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "6Z9jJBQnvvtMps1A",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
-            {
-              "name": "label",
-              "value": "info"
-            },
-            {
-              "name": "event",
-              "value": "MessageReceived"
-            },
-            {
-              "name": "messageId",
-              "value": "={{ $json.messageId }}"
-            },
-            {
-              "name": "discordUser",
-              "value": "={{ $json.discordUser }}"
-            },
-            {
-              "name": "messageTimestamp",
-              "value": "={{ $json.messageTimestamp }}"
-            },
-            {
-              "name": "details",
-              "value": "Discord message received and normalized"
-            },
-            {
-              "name": "status",
-              "value": "Received"
-            }
-          ]
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "SubmissionReceived",
+            "messageId": "={{ $json.messageId }}",
+            "discordUser": "={{ $json.discordUser }}",
+            "messageTimestamp": "={{ $json.messageTimestamp }}",
+            "details": "=Submission accepted from {{ $json.discordUser }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "label", "displayName": "label", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "event", "displayName": "event", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageId", "displayName": "messageId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "discordUser", "displayName": "discordUser", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageTimestamp", "displayName": "messageTimestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "details", "displayName": "details", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-submission-received",
       "name": "Log - SubmissionReceived",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         260,
         520
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "6Z9jJBQnvvtMps1A",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "AIExtractionRequested",
+            "messageId": "={{ $('Normalize Discord Input').item.json.messageId }}",
+            "discordUser": "={{ $('Normalize Discord Input').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Normalize Discord Input').item.json.messageTimestamp }}",
+            "details": "=Calling LLM extraction for message {{ $('Normalize Discord Input').item.json.messageId || '(no id)' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "label", "displayName": "label", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "event", "displayName": "event", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageId", "displayName": "messageId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "discordUser", "displayName": "discordUser", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageTimestamp", "displayName": "messageTimestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "details", "displayName": "details", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      },
+      "id": "log-ai-extraction-requested",
+      "name": "Log - AIExtractionRequested",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        420,
+        420
       ]
     },
     {
@@ -146,7 +179,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nconst original = $('Normalize Discord Input').first().json;\nconst response = $json;\n\nfunction safeString(value) {\n  if (value === null || value === undefined) return '';\n  return String(value).trim();\n}\n\nfunction parseLlmJson(resp) {\n  if (resp.error || resp.message?.includes?.('Error')) {\n    return { apiUnavailable: true, aiRawText: '', extracted: null };\n  }\n  const text =\n    resp.choices?.[0]?.message?.content ??\n    resp.body?.choices?.[0]?.message?.content ??\n    resp.data?.choices?.[0]?.message?.content ??\n    '';\n  if (!text) {\n    return { apiUnavailable: true, aiRawText: '', extracted: null };\n  }\n  try {\n    const cleaned = text.replace(/^```json\\s*/i, '').replace(/```$/i, '').trim();\n    return { apiUnavailable: false, aiRawText: text, extracted: JSON.parse(cleaned) };\n  } catch (error) {\n    return { apiUnavailable: false, aiRawText: text, extracted: {\n      ReceiptDetected: false,\n      Notes: `AI returned invalid JSON: ${error.message}`\n    }};\n  }\n}\n\nconst parsed = parseLlmJson(response);\n\nif (parsed.apiUnavailable) {\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: true,\n      receiptDetected: false,\n      logEvent: 'AIUnavailable',\n      logLabel: 'error',\n      status: 'Rejected',\n      details: 'LLM API failed or returned no usable response.',\n      discordMessage: `\u26a0\ufe0f <@${original.discordUserId}> your receipt could not be processed because the AI service is unavailable. Please try again later.`\n    }\n  }];\n}\n\nconst ai = parsed.extracted || {};\nconst receiptDetected = ai.ReceiptDetected === true;\n\nif (!receiptDetected) {\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: false,\n      receiptDetected: false,\n      logEvent: 'NoReceiptRegistered',\n      logLabel: 'warning',\n      status: 'Rejected',\n      details: safeString(ai.Notes) || 'No receipt was detected in the submitted image.',\n      aiRawText: parsed.aiRawText,\n      discordMessage: `\u274c <@${original.discordUserId}> no valid receipt was detected. Please send a new image of the receipt.`\n    }\n  }];\n}\n\nconst merged = {\n  discordUser: original.discordUser,\n  discordUserId: original.discordUserId,\n  messageTimestamp: original.messageTimestamp,\n  submittedDate: original.submittedDate,\n  messageId: original.messageId,\n  channelId: original.channelId,\n  merchant: safeString(ai.Merchant),\n  receiptDate: safeString(ai.ReceiptDate),\n  currency: safeString(ai.Currency),\n  totalAmount: ai.TotalAmount ?? '',\n  vatAmount: ai.VATAmount ?? '',\n  vatIncluded: safeString(ai.VATIncluded),\n  category: safeString(ai.Category),\n  paymentMethod: safeString(ai.PaymentMethod),\n  receiptId: safeString(ai.ReceiptId),\n  businessPurpose: safeString(ai.BusinessPurpose),\n  confidence: ai.Confidence ?? '',\n  notes: safeString(ai.Notes)\n};\n\nconst requiredFields = [\n  ['Merchant', merged.merchant],\n  ['Receipt Date', merged.receiptDate],\n  ['Currency', merged.currency],\n  ['Total Amount', merged.totalAmount],\n  ['VAT Amount', merged.vatAmount],\n  ['Category', merged.category]\n];\n\nconst missingFields = requiredFields\n  .filter(([_, value]) => value === '' || value === null || value === undefined)\n  .map(([field]) => field);\n\nconst hasMissingFields = missingFields.length > 0;\nconst status = hasMissingFields ? 'Pending Review' : 'Approved by Bot';\nconst details = hasMissingFields\n  ? `Missing fields: ${missingFields.join(', ')}`\n  : 'All required fields extracted successfully.';\n\n// Sheet row \u2014 matches Receipts sheet column order exactly:\n// Employee Name | Submitted Date | Receipt Date | Merchant\n// | Expense Category | Payment Method | Currency\n// | Total Amount | VAT Included | VAT Amount | Status\nconst rowValues = [\n  merged.discordUser,\n  merged.submittedDate,\n  merged.receiptDate,\n  merged.merchant,\n  merged.category,\n  merged.paymentMethod,\n  merged.currency,\n  merged.totalAmount,\n  merged.vatIncluded,\n  merged.vatAmount,\n  status\n];\n\nconst discordMessage = hasMissingFields\n  ? `\ud83d\udfe1 <@${merged.discordUserId}> your receipt was detected, but it is missing required data.\\n\\n**Status:** Pending Review\\n**Details:** ${details}\\n\\nPlease re-upload the receipt with the missing information.`\n  : `\u2705 <@${merged.discordUserId}> your receipt was processed successfully.\\n\\n**Status:** Approved by Bot\\n**Merchant:** ${merged.merchant}\\n**Amount:** ${merged.totalAmount} ${merged.currency}\\n**Category:** ${merged.category}`;\n\nreturn [{\n  json: {\n    ...merged,\n    apiUnavailable: false,\n    receiptDetected: true,\n    hasMissingFields,\n    missingFields,\n    status,\n    details,\n    rowValues,\n    aiRawText: parsed.aiRawText,\n    logEvent: hasMissingFields ? 'AIResponseReceived; MissingFields' : 'AIResponseReceived',\n    logLabel: hasMissingFields ? 'warning' : 'info',\n    discordMessage\n  }\n}];\n"
+        "jsCode": "\nconst original = $('Normalize Discord Input').first().json;\nconst response = $json;\n\nfunction safeString(value) {\n  if (value === null || value === undefined) return '';\n  return String(value).trim();\n}\n\nfunction parseLlmJson(resp) {\n  if (resp.error || resp.message?.includes?.('Error')) {\n    return { apiUnavailable: true, invalidJson: false, parseError: null, aiRawText: '', extracted: null };\n  }\n  const text =\n    resp.choices?.[0]?.message?.content ??\n    resp.body?.choices?.[0]?.message?.content ??\n    resp.data?.choices?.[0]?.message?.content ??\n    '';\n  if (!text) {\n    return { apiUnavailable: true, invalidJson: false, parseError: null, aiRawText: '', extracted: null };\n  }\n  try {\n    const cleaned = text.replace(/^```json\\s*/i, '').replace(/```$/i, '').trim();\n    return { apiUnavailable: false, invalidJson: false, parseError: null, aiRawText: text, extracted: JSON.parse(cleaned) };\n  } catch (error) {\n    return { apiUnavailable: false, invalidJson: true, parseError: error.message, aiRawText: text, extracted: { ReceiptDetected: false } };\n  }\n}\n\nconst parsed = parseLlmJson(response);\n\nif (parsed.apiUnavailable) {\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: true,\n      receiptDetected: false,\n      logEvent: 'AIUnavailable',\n      logLabel: 'error',\n      status: 'Rejected',\n      details: 'LLM endpoint unreachable or returned no usable response.',\n      discordMessage: `⚠️ <@${original.discordUserId}> your receipt could not be processed because the AI service is unavailable. Please try again later.`\n    }\n  }];\n}\n\nif (parsed.invalidJson) {\n  const rawHead = (parsed.aiRawText || '').slice(0, 200).replace(/\\s+/g, ' ');\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: false,\n      receiptDetected: false,\n      logEvent: 'AIResponseInvalid',\n      logLabel: 'error',\n      status: 'Rejected',\n      details: `AI returned non-JSON output: ${parsed.parseError}. Raw head: ${rawHead}`,\n      aiRawText: parsed.aiRawText,\n      discordMessage: `❌ <@${original.discordUserId}> the AI response was unreadable. Please re-upload the receipt.`\n    }\n  }];\n}\n\nconst ai = parsed.extracted || {};\nconst receiptDetected = ai.ReceiptDetected === true;\n\nif (!receiptDetected) {\n  return [{\n    json: {\n      ...original,\n      apiUnavailable: false,\n      receiptDetected: false,\n      logEvent: 'NoReceiptDetected',\n      logLabel: 'warning',\n      status: 'Rejected',\n      details: `Image classified as non-receipt. AI notes: ${safeString(ai.Notes) || 'no notes provided'}`,\n      aiRawText: parsed.aiRawText,\n      discordMessage: `❌ <@${original.discordUserId}> no valid receipt was detected. Please send a new image of the receipt.`\n    }\n  }];\n}\n\nconst merged = {\n  discordUser: original.discordUser,\n  discordUserId: original.discordUserId,\n  messageTimestamp: original.messageTimestamp,\n  submittedDate: original.submittedDate,\n  messageId: original.messageId,\n  channelId: original.channelId,\n  merchant: safeString(ai.Merchant),\n  receiptDate: safeString(ai.ReceiptDate),\n  currency: safeString(ai.Currency),\n  totalAmount: ai.TotalAmount ?? '',\n  vatAmount: ai.VATAmount ?? '',\n  vatIncluded: safeString(ai.VATIncluded),\n  category: safeString(ai.Category),\n  paymentMethod: safeString(ai.PaymentMethod),\n  receiptId: safeString(ai.ReceiptId),\n  businessPurpose: safeString(ai.BusinessPurpose),\n  confidence: ai.Confidence ?? '',\n  notes: safeString(ai.Notes)\n};\n\nconst requiredFields = [\n  ['Merchant', merged.merchant],\n  ['Receipt Date', merged.receiptDate],\n  ['Currency', merged.currency],\n  ['Total Amount', merged.totalAmount],\n  ['VAT Amount', merged.vatAmount],\n  ['Category', merged.category],\n  ['Payment Method', merged.paymentMethod]\n];\n\nconst missingFields = requiredFields\n  .filter(([_, value]) => value === '' || value === null || value === undefined)\n  .map(([field]) => field);\n\nconst hasMissingFields = missingFields.length > 0;\nconst status = hasMissingFields ? 'Pending Review' : 'Approved by Bot';\n\nconst aiSummary = `Merchant: ${merged.merchant || '(blank)'}, Total: ${merged.totalAmount === '' ? '(blank)' : merged.totalAmount} ${merged.currency || ''}, Date: ${merged.receiptDate || '(blank)'}, Confidence: ${merged.confidence === '' ? '(blank)' : merged.confidence}`;\nconst aiResponseDetails = `Receipt parsed — ${aiSummary}`;\nconst missingDetails = `Routed to Pending Review. Missing fields: ${missingFields.join(', ')}`;\n\n// Sheet row — matches Receipts sheet column order exactly:\n// Employee Name | Submitted Date | Receipt Date | Merchant\n// | Expense Category | Payment Method | Currency\n// | Total Amount | VAT Included | VAT Amount | Status\nconst rowValues = [\n  merged.discordUser,\n  merged.submittedDate,\n  merged.receiptDate,\n  merged.merchant,\n  merged.category,\n  merged.paymentMethod,\n  merged.currency,\n  merged.totalAmount,\n  merged.vatIncluded,\n  merged.vatAmount,\n  status\n];\n\nconst discordMessage = hasMissingFields\n  ? `🟡 <@${merged.discordUserId}> your receipt was detected, but it is missing required data.\\n\\n**Status:** Pending Review\\n**Missing:** ${missingFields.join(', ')}\\n\\nPlease re-upload the receipt with the missing information.`\n  : `✅ <@${merged.discordUserId}> your receipt was processed successfully.\\n\\n**Status:** Approved by Bot\\n**Merchant:** ${merged.merchant}\\n**Amount:** ${merged.totalAmount} ${merged.currency}\\n**Category:** ${merged.category}`;\n\nreturn [{\n  json: {\n    ...merged,\n    apiUnavailable: false,\n    receiptDetected: true,\n    hasMissingFields,\n    missingFields,\n    status,\n    details: aiResponseDetails,\n    missingDetails,\n    rowValues,\n    aiRawText: parsed.aiRawText,\n    logEvent: 'AIResponseReceived',\n    logLabel: 'info',\n    discordMessage\n  }\n}];\n"
       },
       "id": "7624a547-0bf0-40e6-9d98-b9c14dd7806b",
       "name": "Parse AI Response and Validate",
@@ -192,48 +225,40 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "6Z9jJBQnvvtMps1A",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
-            {
-              "name": "label",
-              "value": "error"
-            },
-            {
-              "name": "event",
-              "value": "AIUnavailable"
-            },
-            {
-              "name": "messageId",
-              "value": "={{ $json.messageId }}"
-            },
-            {
-              "name": "discordUser",
-              "value": "={{ $json.discordUser }}"
-            },
-            {
-              "name": "messageTimestamp",
-              "value": "={{ $json.messageTimestamp }}"
-            },
-            {
-              "name": "details",
-              "value": "={{ $json.details }}"
-            },
-            {
-              "name": "status",
-              "value": "={{ $json.status }}"
-            },
-            {
-              "name": "n8nStackTrace",
-              "value": "={{ $json.error?.message || $json.message || null }}"
-            }
-          ]
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "error",
+            "event": "AIUnavailable",
+            "messageId": "={{ $json.messageId }}",
+            "discordUser": "={{ $json.discordUser }}",
+            "messageTimestamp": "={{ $json.messageTimestamp }}",
+            "details": "={{ $json.details }}",
+            "N8NStackTrace": "={{ $json.error?.message || $json.message || '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "label", "displayName": "label", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "event", "displayName": "event", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageId", "displayName": "messageId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "discordUser", "displayName": "discordUser", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageTimestamp", "displayName": "messageTimestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "details", "displayName": "details", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "N8NStackTrace", "displayName": "N8NStackTrace", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-ai-unavailable",
       "name": "Log - AIUnavailable",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         1340,
         140
@@ -266,8 +291,47 @@
     },
     {
       "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "6Z9jJBQnvvtMps1A",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "WorkflowCompleted",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "Submission halted — AI unavailable. Final status: Rejected."
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "label", "displayName": "label", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "event", "displayName": "event", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageId", "displayName": "messageId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "discordUser", "displayName": "discordUser", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageTimestamp", "displayName": "messageTimestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "details", "displayName": "details", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      },
+      "id": "log-completed-ai-unavailable",
+      "name": "Log - WorkflowCompleted (AI Unavailable)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1450,
+        380
+      ]
+    },
+    {
+      "parameters": {
         "respondWith": "json",
-        "responseBody": "=JSON.stringify({ ok: false, status: $json.status, event: $json.logEvent, details: $json.details })",
+        "responseBody": "={{ ({ ok: false, status: $('Parse AI Response and Validate').item.json.status, event: $('Parse AI Response and Validate').item.json.logEvent, details: $('Parse AI Response and Validate').item.json.details }) }}",
         "options": {}
       },
       "id": "51ad1b70-fa4f-4764-99e0-06e5a7ad1598",
@@ -314,44 +378,38 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "6Z9jJBQnvvtMps1A",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
-            {
-              "name": "label",
-              "value": "warning"
-            },
-            {
-              "name": "event",
-              "value": "NoReceiptRegistered"
-            },
-            {
-              "name": "messageId",
-              "value": "={{ $json.messageId }}"
-            },
-            {
-              "name": "discordUser",
-              "value": "={{ $json.discordUser }}"
-            },
-            {
-              "name": "messageTimestamp",
-              "value": "={{ $json.messageTimestamp }}"
-            },
-            {
-              "name": "details",
-              "value": "={{ $json.details }}"
-            },
-            {
-              "name": "status",
-              "value": "={{ $json.status }}"
-            }
-          ]
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "={{ $json.logLabel }}",
+            "event": "={{ $json.logEvent }}",
+            "messageId": "={{ $json.messageId }}",
+            "discordUser": "={{ $json.discordUser }}",
+            "messageTimestamp": "={{ $json.messageTimestamp }}",
+            "details": "={{ $json.details }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "label", "displayName": "label", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "event", "displayName": "event", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageId", "displayName": "messageId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "discordUser", "displayName": "discordUser", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageTimestamp", "displayName": "messageTimestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "details", "displayName": "details", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-no-receipt",
-      "name": "Log - NoReceiptRegistered",
+      "name": "Log - NoReceiptDetected",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         1600,
         400
@@ -384,8 +442,47 @@
     },
     {
       "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "6Z9jJBQnvvtMps1A",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "WorkflowCompleted",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "=Submission halted — {{ $('Parse AI Response and Validate').item.json.logEvent }}. Final status: Rejected."
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "label", "displayName": "label", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "event", "displayName": "event", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageId", "displayName": "messageId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "discordUser", "displayName": "discordUser", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageTimestamp", "displayName": "messageTimestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "details", "displayName": "details", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      },
+      "id": "log-completed-no-receipt",
+      "name": "Log - WorkflowCompleted (No Receipt)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1710,
+        640
+      ]
+    },
+    {
+      "parameters": {
         "respondWith": "json",
-        "responseBody": "=JSON.stringify({ ok: false, status: $json.status, event: $json.logEvent, details: $json.details })",
+        "responseBody": "={{ ({ ok: false, status: $('Parse AI Response and Validate').item.json.status, event: $('Parse AI Response and Validate').item.json.logEvent, details: $('Parse AI Response and Validate').item.json.details }) }}",
         "options": {}
       },
       "id": "77ef125f-f46c-4bc4-a086-dcb275149683",
@@ -399,80 +496,38 @@
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "6Z9jJBQnvvtMps1A",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
-            {
-              "name": "label",
-              "value": "={{ $json.logLabel }}"
-            },
-            {
-              "name": "event",
-              "value": "={{ $json.logEvent }}"
-            },
-            {
-              "name": "messageId",
-              "value": "={{ $json.messageId }}"
-            },
-            {
-              "name": "discordUser",
-              "value": "={{ $json.discordUser }}"
-            },
-            {
-              "name": "messageTimestamp",
-              "value": "={{ $json.messageTimestamp }}"
-            },
-            {
-              "name": "details",
-              "value": "={{ $json.details }}"
-            },
-            {
-              "name": "status",
-              "value": "={{ $json.status }}"
-            },
-            {
-              "name": "receiptDetected",
-              "value": "={{ $json.receiptDetected }}"
-            },
-            {
-              "name": "hasMissingFields",
-              "value": "={{ $json.hasMissingFields }}"
-            },
-            {
-              "name": "missingFields",
-              "value": "={{ $json.missingFields }}"
-            },
-            {
-              "name": "merchant",
-              "value": "={{ $json.merchant }}"
-            },
-            {
-              "name": "receiptDate",
-              "value": "={{ $json.receiptDate }}"
-            },
-            {
-              "name": "category",
-              "value": "={{ $json.category }}"
-            },
-            {
-              "name": "currency",
-              "value": "={{ $json.currency }}"
-            },
-            {
-              "name": "totalAmount",
-              "value": "={{ $json.totalAmount }}"
-            },
-            {
-              "name": "confidence",
-              "value": "={{ $json.confidence }}"
-            }
-          ]
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "AIResponseReceived",
+            "messageId": "={{ $json.messageId }}",
+            "discordUser": "={{ $json.discordUser }}",
+            "messageTimestamp": "={{ $json.messageTimestamp }}",
+            "details": "={{ $json.details }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "label", "displayName": "label", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "event", "displayName": "event", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageId", "displayName": "messageId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "discordUser", "displayName": "discordUser", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageTimestamp", "displayName": "messageTimestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "details", "displayName": "details", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-ai-response",
       "name": "Log - AIResponseReceived",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
         1640,
         680
@@ -489,7 +544,7 @@
           "conditions": [
             {
               "id": "hasMissingFields",
-              "leftValue": "={{$json.hasMissingFields}}",
+              "leftValue": "={{ $('Parse AI Response and Validate').item.json.hasMissingFields }}",
               "rightValue": true,
               "operator": {
                 "type": "boolean",
@@ -513,6 +568,45 @@
     },
     {
       "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "6Z9jJBQnvvtMps1A",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "warning",
+            "event": "MissingRequiredFields",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "={{ $('Parse AI Response and Validate').item.json.missingDetails }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "label", "displayName": "label", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "event", "displayName": "event", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageId", "displayName": "messageId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "discordUser", "displayName": "discordUser", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageTimestamp", "displayName": "messageTimestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "details", "displayName": "details", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      },
+      "id": "log-missing-fields",
+      "name": "Log - MissingRequiredFields",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2020,
+        500
+      ]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{$env.GOOGLE_SHEETS_SPREADSHEET_ID}}/values/Receipts:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
         "authentication": "predefinedCredentialType",
@@ -523,7 +617,7 @@
           "parameters": [
             {
               "name": "values",
-              "value": "={{ [$json.rowValues] }}"
+              "value": "={{ [$('Parse AI Response and Validate').item.json.rowValues] }}"
             }
           ]
         },
@@ -538,244 +632,6 @@
         580
       ],
       "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
-        "workflowInputs": {
-          "values": [
-            {
-              "name": "label",
-              "value": "warning"
-            },
-            {
-              "name": "event",
-              "value": "WroteToExcel"
-            },
-            {
-              "name": "messageId",
-              "value": "={{ $json.messageId }}"
-            },
-            {
-              "name": "discordUser",
-              "value": "={{ $json.discordUser }}"
-            },
-            {
-              "name": "messageTimestamp",
-              "value": "={{ $json.messageTimestamp }}"
-            },
-            {
-              "name": "details",
-              "value": "={{ 'Row written to Sheets with status Pending Review. ' + $json.details }}"
-            },
-            {
-              "name": "status",
-              "value": "Pending Review"
-            }
-          ]
-        }
-      },
-      "id": "log-pending-wrote",
-      "name": "Log - WroteToExcel (Pending)",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
-      "position": [
-        2340,
-        580
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{$env.DISCORD_LOG_WEBHOOK_URL}}",
-        "sendBody": true,
-        "specifyBody": "keypair",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "content",
-              "value": "={{ $json.discordMessage }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "f90074ea-85e6-44ac-9fc1-8f158672d6d3",
-      "name": "Discord Notify - Pending Review",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        2340,
-        720
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "=JSON.stringify({ ok: true, status: $json.status, event: $json.logEvent, details: $json.details, missingFields: $json.missingFields })",
-        "options": {}
-      },
-      "id": "740920ad-c3ee-4902-aff8-cd22fec3aeac",
-      "name": "Respond - Pending Review",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        2560,
-        720
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{$env.GOOGLE_SHEETS_SPREADSHEET_ID}}/values/Receipts:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "googleSheetsOAuth2Api",
-        "sendBody": true,
-        "specifyBody": "keypair",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "values",
-              "value": "={{ [$json.rowValues] }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "5abb6c97-86b9-47a7-b8d8-a9b146cf4a2f",
-      "name": "Sheets Append - Approved",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        2120,
-        860
-      ],
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
-        "workflowInputs": {
-          "values": [
-            {
-              "name": "label",
-              "value": "success"
-            },
-            {
-              "name": "event",
-              "value": "WroteToExcel"
-            },
-            {
-              "name": "messageId",
-              "value": "={{ $json.messageId }}"
-            },
-            {
-              "name": "discordUser",
-              "value": "={{ $json.discordUser }}"
-            },
-            {
-              "name": "messageTimestamp",
-              "value": "={{ $json.messageTimestamp }}"
-            },
-            {
-              "name": "details",
-              "value": "Receipt data successfully written to Google Sheets with status Approved by Bot"
-            },
-            {
-              "name": "status",
-              "value": "Approved by Bot"
-            },
-            {
-              "name": "merchant",
-              "value": "={{ $json.merchant }}"
-            },
-            {
-              "name": "receiptDate",
-              "value": "={{ $json.receiptDate }}"
-            },
-            {
-              "name": "category",
-              "value": "={{ $json.category }}"
-            },
-            {
-              "name": "currency",
-              "value": "={{ $json.currency }}"
-            },
-            {
-              "name": "totalAmount",
-              "value": "={{ $json.totalAmount }}"
-            },
-            {
-              "name": "confidence",
-              "value": "={{ $json.confidence }}"
-            }
-          ]
-        }
-      },
-      "id": "log-success",
-      "name": "Log - WroteToExcel (Success)",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
-      "position": [
-        2340,
-        860
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{$env.DISCORD_LOG_WEBHOOK_URL}}",
-        "sendBody": true,
-        "specifyBody": "keypair",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "content",
-              "value": "={{ $json.discordMessage }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "d00b0180-1ca4-481e-a6bc-5a3d2832670e",
-      "name": "Discord Notify - Success",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        2560,
-        860
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "=JSON.stringify({ ok: true, status: $json.status, event: $json.logEvent, details: $json.details })",
-        "options": {}
-      },
-      "id": "bd175bda-daec-41ae-bc52-3c4709b991d4",
-      "name": "Respond - Success",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        2780,
-        860
-      ]
-    },
-    {
-      "parameters": {
-        "content": "Set these in your n8n environment/config:\n\nLLM_BASE_URL=https://api.anthropic.com/v1\nLLM_API_KEY=your_anthropic_key\nLLM_MODEL=claude-sonnet-4-20250514\nDISCORD_LOG_WEBHOOK_URL=https://discord.com/api/webhooks/...\nGOOGLE_SHEETS_SPREADSHEET_ID=your_google_sheet_id\n\nMongoDB credential in n8n:\nmongodb://admin:password@mongo:27017/AccountantBotDatabase\n\nSheet column order (must match rowValues in Parse node):\nEmployee Name | Submitted Date | Receipt Date | Merchant\n| Expense Category | Payment Method | Currency\n| Total Amount | VAT Included | VAT Amount | Status\n\nIMPORTANT: Import the Logging Subworkflow first,\nthen replace 6Z9jJBQnvvtMps1A\nwith its workflow ID from the n8n URL.",
-        "height": 400,
-        "width": 540,
-        "color": 5
-      },
-      "id": "0b3bd961-e1a6-4e23-9f0b-d1e840ed59ea",
-      "name": "README - Environment Variables",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        540,
-        -80
-      ]
     },
     {
       "parameters": {
@@ -806,82 +662,221 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2120,
-        460
+        2340,
+        580
       ]
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "6Z9jJBQnvvtMps1A",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "SheetAppendSucceeded",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "=Appended row to Receipts as Pending Review. Range: {{ $json.updates?.updatedRange || $json.tableRange || 'unknown' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "label", "displayName": "label", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "event", "displayName": "event", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageId", "displayName": "messageId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "discordUser", "displayName": "discordUser", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageTimestamp", "displayName": "messageTimestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "details", "displayName": "details", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      },
+      "id": "log-pending-wrote",
+      "name": "Log - SheetAppendSucceeded (Pending)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2560,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.DISCORD_LOG_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
             {
-              "name": "label",
-              "value": "error"
-            },
-            {
-              "name": "event",
-              "value": "WroteToExcel"
-            },
-            {
-              "name": "messageId",
-              "value": "={{ $json.messageId }}"
-            },
-            {
-              "name": "discordUser",
-              "value": "={{ $json.discordUser }}"
-            },
-            {
-              "name": "messageTimestamp",
-              "value": "={{ $json.messageTimestamp }}"
-            },
-            {
-              "name": "details",
-              "value": "Failed to write Pending Review row to Google Sheets"
-            },
-            {
-              "name": "status",
-              "value": "Pending Review"
-            },
-            {
-              "name": "n8nStackTrace",
-              "value": "={{ $json.n8nStackTrace }}"
+              "name": "content",
+              "value": "={{ $('Parse AI Response and Validate').item.json.discordMessage }}"
             }
           ]
+        },
+        "options": {}
+      },
+      "id": "f90074ea-85e6-44ac-9fc1-8f158672d6d3",
+      "name": "Discord Notify - Pending Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2560,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "6Z9jJBQnvvtMps1A",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "WorkflowCompleted",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "Submission processed end-to-end. Final status: Pending Review."
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "label", "displayName": "label", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "event", "displayName": "event", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageId", "displayName": "messageId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "discordUser", "displayName": "discordUser", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageTimestamp", "displayName": "messageTimestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "details", "displayName": "details", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      },
+      "id": "log-completed-pending",
+      "name": "Log - WorkflowCompleted (Pending)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2780,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ ({ ok: true, status: $('Parse AI Response and Validate').item.json.status, event: $('Parse AI Response and Validate').item.json.logEvent, details: $('Parse AI Response and Validate').item.json.details, missingFields: $('Parse AI Response and Validate').item.json.missingFields }) }}",
+        "options": {}
+      },
+      "id": "740920ad-c3ee-4902-aff8-cd22fec3aeac",
+      "name": "Respond - Pending Review",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3000,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "6Z9jJBQnvvtMps1A",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "error",
+            "event": "SheetAppendFailed",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "Failed to append Pending Review row to Google Sheets.",
+            "N8NStackTrace": "={{ $json.error?.message || $json.error || $json.message || '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "label", "displayName": "label", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "event", "displayName": "event", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageId", "displayName": "messageId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "discordUser", "displayName": "discordUser", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageTimestamp", "displayName": "messageTimestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "details", "displayName": "details", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "N8NStackTrace", "displayName": "N8NStackTrace", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-sheets-pending-error",
-      "name": "Log - SheetWriteFailed (Pending)",
+      "name": "Log - SheetAppendFailed (Pending)",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
-        2340,
+        2560,
         460
       ]
     },
     {
       "parameters": {
-        "content": "={{ '<@' + $json.discordUserId + '> \u26a0\ufe0f Your receipt was processed but could not be saved to the expense sheet. Please contact the accountant.' }}",
-        "channelId": {
-          "__rl": true,
-          "value": "PLACEHOLDER_DISCORD_CHANNEL_ID",
-          "mode": "id"
-        }
+        "method": "POST",
+        "url": "={{$env.DISCORD_LOG_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ '<@' + $('Parse AI Response and Validate').item.json.discordUserId + '> ⚠️ Your receipt was processed but could not be saved to the expense sheet. Please contact the accountant.' }}"
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "discord-sheets-pending-error",
       "name": "Discord Notify - SheetWriteFailed (Pending)",
-      "type": "n8n-nodes-base.discord",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        2560,
+        2780,
         460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{$env.GOOGLE_SHEETS_SPREADSHEET_ID}}/values/Receipts:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "values",
+              "value": "={{ [$('Parse AI Response and Validate').item.json.rowValues] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5abb6c97-86b9-47a7-b8d8-a9b146cf4a2f",
+      "name": "Sheets Append - Approved",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        860
       ],
-      "credentials": {
-        "discordBotApi": {
-          "id": "PLACEHOLDER_DISCORD_CREDENTIAL_ID",
-          "name": "Discord Bot AccountantBot"
-        }
-      }
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -912,82 +907,209 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2120,
-        760
+        2340,
+        860
       ]
     },
     {
       "parameters": {
-        "workflowId": "6Z9jJBQnvvtMps1A",
+        "workflowId": {
+          "__rl": true,
+          "value": "6Z9jJBQnvvtMps1A",
+          "mode": "id"
+        },
         "workflowInputs": {
-          "values": [
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "SheetAppendSucceeded",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "=Appended row to Receipts as Approved by Bot. Range: {{ $json.updates?.updatedRange || $json.tableRange || 'unknown' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "label", "displayName": "label", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "event", "displayName": "event", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageId", "displayName": "messageId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "discordUser", "displayName": "discordUser", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageTimestamp", "displayName": "messageTimestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "details", "displayName": "details", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      },
+      "id": "log-success",
+      "name": "Log - SheetAppendSucceeded (Approved)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2560,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.DISCORD_LOG_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
             {
-              "name": "label",
-              "value": "error"
-            },
-            {
-              "name": "event",
-              "value": "WroteToExcel"
-            },
-            {
-              "name": "messageId",
-              "value": "={{ $json.messageId }}"
-            },
-            {
-              "name": "discordUser",
-              "value": "={{ $json.discordUser }}"
-            },
-            {
-              "name": "messageTimestamp",
-              "value": "={{ $json.messageTimestamp }}"
-            },
-            {
-              "name": "details",
-              "value": "Failed to write Approved by Bot row to Google Sheets"
-            },
-            {
-              "name": "status",
-              "value": "Approved by Bot"
-            },
-            {
-              "name": "n8nStackTrace",
-              "value": "={{ $json.error?.message || $json.message || null }}"
+              "name": "content",
+              "value": "={{ $('Parse AI Response and Validate').item.json.discordMessage }}"
             }
           ]
+        },
+        "options": {}
+      },
+      "id": "d00b0180-1ca4-481e-a6bc-5a3d2832670e",
+      "name": "Discord Notify - Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2560,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "6Z9jJBQnvvtMps1A",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "info",
+            "event": "WorkflowCompleted",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "Submission processed end-to-end. Final status: Approved by Bot."
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "label", "displayName": "label", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "event", "displayName": "event", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageId", "displayName": "messageId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "discordUser", "displayName": "discordUser", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageTimestamp", "displayName": "messageTimestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "details", "displayName": "details", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      },
+      "id": "log-completed-success",
+      "name": "Log - WorkflowCompleted (Approved)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2780,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ ({ ok: true, status: $('Parse AI Response and Validate').item.json.status, event: $('Parse AI Response and Validate').item.json.logEvent, details: $('Parse AI Response and Validate').item.json.details }) }}",
+        "options": {}
+      },
+      "id": "bd175bda-daec-41ae-bc52-3c4709b991d4",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3000,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "6Z9jJBQnvvtMps1A",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "label": "error",
+            "event": "SheetAppendFailed",
+            "messageId": "={{ $('Parse AI Response and Validate').item.json.messageId }}",
+            "discordUser": "={{ $('Parse AI Response and Validate').item.json.discordUser }}",
+            "messageTimestamp": "={{ $('Parse AI Response and Validate').item.json.messageTimestamp }}",
+            "details": "Failed to append Approved by Bot row to Google Sheets.",
+            "N8NStackTrace": "={{ $json.error?.message || $json.error || $json.message || '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "label", "displayName": "label", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "event", "displayName": "event", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageId", "displayName": "messageId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "discordUser", "displayName": "discordUser", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "messageTimestamp", "displayName": "messageTimestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "details", "displayName": "details", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "N8NStackTrace", "displayName": "N8NStackTrace", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "log-sheets-approved-error",
-      "name": "Log - SheetWriteFailed (Approved)",
+      "name": "Log - SheetAppendFailed (Approved)",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
-        2340,
+        2560,
         760
       ]
     },
     {
       "parameters": {
-        "content": "={{ '<@' + $json.discordUserId + '> \u26a0\ufe0f Your receipt was processed but could not be saved to the expense sheet. Please contact the accountant.' }}",
-        "channelId": {
-          "__rl": true,
-          "value": "PLACEHOLDER_DISCORD_CHANNEL_ID",
-          "mode": "id"
-        }
+        "method": "POST",
+        "url": "={{$env.DISCORD_LOG_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ '<@' + $('Parse AI Response and Validate').item.json.discordUserId + '> ⚠️ Your receipt was processed but could not be saved to the expense sheet. Please contact the accountant.' }}"
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "discord-sheets-approved-error",
       "name": "Discord Notify - SheetWriteFailed (Approved)",
-      "type": "n8n-nodes-base.discord",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        2560,
+        2780,
         760
-      ],
-      "credentials": {
-        "discordBotApi": {
-          "id": "PLACEHOLDER_DISCORD_CREDENTIAL_ID",
-          "name": "Discord Bot AccountantBot"
-        }
-      }
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Set these in your n8n environment/config:\n\nLLM_BASE_URL=https://api.anthropic.com/v1\nLLM_API_KEY=your_anthropic_key\nLLM_MODEL=claude-sonnet-4-20250514\nDISCORD_LOG_WEBHOOK_URL=https://discord.com/api/webhooks/...\nDISCORD_ACCOUNTANT_ROLE_ID=...           (used by Logging Subworkflow on log-write failure)\nGOOGLE_SHEETS_SPREADSHEET_ID=your_google_sheet_id\n\nMongoDB credential in n8n:\nmongodb://admin:password@mongo:27017/expense_rpa?authSource=admin\n\nSheet column order (must match rowValues in Parse node):\nEmployee Name | Submitted Date | Receipt Date | Merchant\n| Expense Category | Payment Method | Currency\n| Total Amount | VAT Included | VAT Amount | Status\n\nLog event taxonomy (logs collection in MongoDB):\n  SubmissionReceived    (info)\n  AIExtractionRequested (info)\n  AIUnavailable         (error)\n  AIResponseInvalid     (error)\n  AIResponseReceived    (info)\n  NoReceiptDetected     (warning)\n  MissingRequiredFields (warning)\n  SheetAppendSucceeded  (info)\n  SheetAppendFailed     (error)\n  WorkflowCompleted     (info)\n\nDocument shape per log (enforced by the logging subworkflow):\n  label, event, logTimestamp, messageId,\n  discordUser, messageTimestamp, details,\n  N8NStackTrace (only on errors)\n\nIMPORTANT: Import the Logging Subworkflow first,\nthen replace 6Z9jJBQnvvtMps1A in every Log - * node\nwith its workflow ID from the n8n URL.\n\nAll user-facing Discord notifications (success, missing fields,\nno receipt, AI unavailable, sheet-write failed) post to\nDISCORD_LOG_WEBHOOK_URL via HTTP — no Discord bot credential\nor channelId placeholder needed in the workflow.",
+        "height": 620,
+        "width": 540,
+        "color": 5
+      },
+      "id": "0b3bd961-e1a6-4e23-9f0b-d1e840ed59ea",
+      "name": "README - Environment Variables",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        540,
+        -180
+      ]
     }
   ],
   "pinData": {},
@@ -995,228 +1117,153 @@
     "Webhook - Discord Receipt Submission": {
       "main": [
         [
-          {
-            "node": "Normalize Discord Input",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Normalize Discord Input", "type": "main", "index": 0 }
         ]
       ]
     },
     "Normalize Discord Input": {
       "main": [
         [
-          {
-            "node": "Log - SubmissionReceived",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Log - SubmissionReceived", "type": "main", "index": 0 }
         ]
       ]
     },
     "Log - SubmissionReceived": {
       "main": [
         [
-          {
-            "node": "AI Extraction - LLM",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Log - AIExtractionRequested", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Log - AIExtractionRequested": {
+      "main": [
+        [
+          { "node": "AI Extraction - LLM", "type": "main", "index": 0 }
         ]
       ]
     },
     "AI Extraction - LLM": {
       "main": [
         [
-          {
-            "node": "Parse AI Response and Validate",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Parse AI Response and Validate", "type": "main", "index": 0 }
         ]
       ]
     },
     "Parse AI Response and Validate": {
       "main": [
         [
-          {
-            "node": "IF - AI API unavailable?",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "IF - AI API unavailable?", "type": "main", "index": 0 }
         ]
       ]
     },
     "IF - AI API unavailable?": {
       "main": [
         [
-          {
-            "node": "Log - AIUnavailable",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Discord Notify - AI Unavailable",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Log - AIUnavailable", "type": "main", "index": 0 },
+          { "node": "Discord Notify - AI Unavailable", "type": "main", "index": 0 }
         ],
         [
-          {
-            "node": "IF - Receipt detected?",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "IF - Receipt detected?", "type": "main", "index": 0 }
         ]
       ]
     },
     "Discord Notify - AI Unavailable": {
       "main": [
         [
-          {
-            "node": "Respond - AI Unavailable",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Log - WorkflowCompleted (AI Unavailable)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Log - WorkflowCompleted (AI Unavailable)": {
+      "main": [
+        [
+          { "node": "Respond - AI Unavailable", "type": "main", "index": 0 }
         ]
       ]
     },
     "IF - Receipt detected?": {
       "main": [
         [
-          {
-            "node": "Log - AIResponseReceived",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Log - AIResponseReceived", "type": "main", "index": 0 }
         ],
         [
-          {
-            "node": "Log - NoReceiptRegistered",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Discord Notify - No Receipt",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Log - NoReceiptDetected", "type": "main", "index": 0 },
+          { "node": "Discord Notify - No Receipt", "type": "main", "index": 0 }
         ]
       ]
     },
     "Discord Notify - No Receipt": {
       "main": [
         [
-          {
-            "node": "Respond - No Receipt",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Log - WorkflowCompleted (No Receipt)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Log - WorkflowCompleted (No Receipt)": {
+      "main": [
+        [
+          { "node": "Respond - No Receipt", "type": "main", "index": 0 }
         ]
       ]
     },
     "Log - AIResponseReceived": {
       "main": [
         [
-          {
-            "node": "IF - Missing required fields?",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "IF - Missing required fields?", "type": "main", "index": 0 }
         ]
       ]
     },
     "IF - Missing required fields?": {
       "main": [
         [
-          {
-            "node": "Sheets Append - Pending Review",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Log - MissingRequiredFields", "type": "main", "index": 0 }
         ],
         [
-          {
-            "node": "Sheets Append - Approved",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Sheets Append - Approved", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Log - MissingRequiredFields": {
+      "main": [
+        [
+          { "node": "Sheets Append - Pending Review", "type": "main", "index": 0 }
         ]
       ]
     },
     "Sheets Append - Pending Review": {
       "main": [
         [
-          {
-            "node": "Sheets Write Failed? (Pending)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Discord Notify - Pending Review": {
-      "main": [
-        [
-          {
-            "node": "Respond - Pending Review",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Sheets Append - Approved": {
-      "main": [
-        [
-          {
-            "node": "Sheets Write Failed? (Approved)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Discord Notify - Success": {
-      "main": [
-        [
-          {
-            "node": "Respond - Success",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Sheets Write Failed? (Pending)", "type": "main", "index": 0 }
         ]
       ]
     },
     "Sheets Write Failed? (Pending)": {
       "main": [
         [
-          {
-            "node": "Log - WroteToExcel (Pending)",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Discord Notify - Pending Review",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Log - SheetAppendFailed (Pending)", "type": "main", "index": 0 },
+          { "node": "Discord Notify - SheetWriteFailed (Pending)", "type": "main", "index": 0 }
         ],
         [
-          {
-            "node": "Log - SheetWriteFailed (Pending)",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Discord Notify - SheetWriteFailed (Pending)",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Log - SheetAppendSucceeded (Pending)", "type": "main", "index": 0 },
+          { "node": "Discord Notify - Pending Review", "type": "main", "index": 0 }
         ]
       ]
     },
-    "Log - SheetWriteFailed (Pending)": {
+    "Discord Notify - Pending Review": {
+      "main": [
+        [
+          { "node": "Log - WorkflowCompleted (Pending)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Log - WorkflowCompleted (Pending)": {
+      "main": [
+        [
+          { "node": "Respond - Pending Review", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Log - SheetAppendFailed (Pending)": {
       "main": [
         []
       ]
@@ -1226,35 +1273,40 @@
         []
       ]
     },
-    "Sheets Write Failed? (Approved)": {
+    "Sheets Append - Approved": {
       "main": [
         [
-          {
-            "node": "Log - WroteToExcel (Success)",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Discord Notify - Success",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Log - SheetWriteFailed (Approved)",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Discord Notify - SheetWriteFailed (Approved)",
-            "type": "main",
-            "index": 0
-          }
+          { "node": "Sheets Write Failed? (Approved)", "type": "main", "index": 0 }
         ]
       ]
     },
-    "Log - SheetWriteFailed (Approved)": {
+    "Sheets Write Failed? (Approved)": {
+      "main": [
+        [
+          { "node": "Log - SheetAppendFailed (Approved)", "type": "main", "index": 0 },
+          { "node": "Discord Notify - SheetWriteFailed (Approved)", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Log - SheetAppendSucceeded (Approved)", "type": "main", "index": 0 },
+          { "node": "Discord Notify - Success", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Discord Notify - Success": {
+      "main": [
+        [
+          { "node": "Log - WorkflowCompleted (Approved)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Log - WorkflowCompleted (Approved)": {
+      "main": [
+        [
+          { "node": "Respond - Success", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Log - SheetAppendFailed (Approved)": {
       "main": [
         []
       ]
@@ -1272,7 +1324,7 @@
     "callerPolicy": "workflowsFromSameOwner"
   },
   "meta": {
-    "description": "Main AccountantBot workflow. Calls the Logging Subworkflow for all log events with retry logic."
+    "description": "Main AccountantBot workflow. Calls the Logging Subworkflow for all log events with retry logic. Posts user-facing Discord notifications via DISCORD_LOG_WEBHOOK_URL on every terminal branch (Approved, Pending Review, No Receipt, AI Unavailable, Sheet write failed)."
   },
   "tags": []
 }
